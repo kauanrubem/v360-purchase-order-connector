@@ -45,6 +45,15 @@ public class PurchaseOrderItem {
     @Column(name = "unit_price", nullable = false, precision = 19, scale = 6)
     private BigDecimal unitPrice;
 
+    @Column(name = "source_purchase_unit", length = 20)
+    private String sourcePurchaseUnit;
+
+    @Column(name = "source_conversion_factor", precision = 19, scale = 6)
+    private BigDecimal sourceConversionFactor;
+
+    @Column(name = "source_purchase_unit_price", precision = 19, scale = 2)
+    private BigDecimal sourcePurchaseUnitPrice;
+
     protected PurchaseOrderItem() {
     }
 
@@ -57,6 +66,32 @@ public class PurchaseOrderItem {
             BigDecimal quantityReceived,
             BigDecimal unitPrice
     ) {
+        this(
+                line,
+                materialCode,
+                description,
+                unitOfMeasure,
+                quantityOrdered,
+                quantityReceived,
+                unitPrice,
+                null,
+                null,
+                null
+        );
+    }
+
+    public PurchaseOrderItem(
+            String line,
+            String materialCode,
+            String description,
+            String unitOfMeasure,
+            BigDecimal quantityOrdered,
+            BigDecimal quantityReceived,
+            BigDecimal unitPrice,
+            String sourcePurchaseUnit,
+            BigDecimal sourceConversionFactor,
+            BigDecimal sourcePurchaseUnitPrice
+    ) {
         this.line = line;
         this.materialCode = materialCode;
         this.description = description;
@@ -64,6 +99,9 @@ public class PurchaseOrderItem {
         this.quantityOrdered = quantityOrdered;
         this.quantityReceived = quantityReceived;
         this.unitPrice = unitPrice;
+        this.sourcePurchaseUnit = sourcePurchaseUnit;
+        this.sourceConversionFactor = sourceConversionFactor;
+        this.sourcePurchaseUnitPrice = sourcePurchaseUnitPrice;
     }
 
     void attachTo(PurchaseOrder purchaseOrder) {
@@ -77,6 +115,9 @@ public class PurchaseOrderItem {
         this.quantityOrdered = source.quantityOrdered;
         this.quantityReceived = source.quantityReceived;
         this.unitPrice = source.unitPrice;
+        this.sourcePurchaseUnit = source.sourcePurchaseUnit;
+        this.sourceConversionFactor = source.sourceConversionFactor;
+        this.sourcePurchaseUnitPrice = source.sourcePurchaseUnitPrice;
     }
 
     public BigDecimal getQuantityRemaining() {
@@ -109,5 +150,17 @@ public class PurchaseOrderItem {
 
     public BigDecimal getUnitPrice() {
         return unitPrice;
+    }
+
+    public String getSourcePurchaseUnit() {
+        return sourcePurchaseUnit;
+    }
+
+    public BigDecimal getSourceConversionFactor() {
+        return sourceConversionFactor;
+    }
+
+    public BigDecimal getSourcePurchaseUnitPrice() {
+        return sourcePurchaseUnitPrice;
     }
 }

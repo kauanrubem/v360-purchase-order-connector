@@ -45,7 +45,8 @@ public record PurchaseOrderDetailResponse(
             BigDecimal quantityOrdered,
             BigDecimal quantityReceived,
             BigDecimal quantityRemaining,
-            BigDecimal unitPrice
+            BigDecimal unitPrice,
+            SourceItemDetailsResponse sourceDetails
     ) {
         static ItemResponse from(br.com.v360.purchaseorder.domain.model.PurchaseOrderItem item) {
             return new ItemResponse(
@@ -56,9 +57,26 @@ public record PurchaseOrderDetailResponse(
                     item.getQuantityOrdered(),
                     item.getQuantityReceived(),
                     item.getQuantityRemaining(),
-                    item.getUnitPrice()
+                    item.getUnitPrice(),
+                    SourceItemDetailsResponse.from(item)
+            );
+        }
+    }
+
+    public record SourceItemDetailsResponse(
+            String purchaseUnit,
+            BigDecimal conversionFactor,
+            BigDecimal purchaseUnitPrice
+    ) {
+        static SourceItemDetailsResponse from(br.com.v360.purchaseorder.domain.model.PurchaseOrderItem item) {
+            if (item.getSourcePurchaseUnit() == null) {
+                return null;
+            }
+            return new SourceItemDetailsResponse(
+                    item.getSourcePurchaseUnit(),
+                    item.getSourceConversionFactor(),
+                    item.getSourcePurchaseUnitPrice()
             );
         }
     }
 }
-

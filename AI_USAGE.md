@@ -37,7 +37,8 @@ Esses episódios reforçaram que uma resposta plausível da IA não substitui co
 - executei `git diff --check` para detectar problemas de formatação;
 - registrei decisões e limitações antes de expandir o escopo.
 
+Na Parte 2, os testes também validaram numericamente a conversão do Gama: 10 caixas de 12 unidades foram normalizadas para 120 unidades, com 24 recebidas e preço de R$ 100,00 por unidade.
+
 ## Como garanto que entendo o código
 
 Consigo explicar o caminho completo de uma requisição: controller, DTO externo, normalização, agregado, repositório, resposta e persistência. Também consigo justificar as regras adotadas, reproduzir os testes, alterar os adaptadores e explicar os trade-offs registrados em `docs/architecture.md` e `docs/business-rules.md`.
-

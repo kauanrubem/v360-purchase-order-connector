@@ -8,8 +8,10 @@ O serviço é um monólito modular. Essa escolha mantém implantação e operaç
 flowchart LR
     A[Alfa JSON] --> IA[Adaptador Alfa]
     B[Beta CSV] --> IB[Adaptador Beta]
+    C[Gama JSON achatado] --> IG[Adaptador Gama]
     IA --> D[Modelo normalizado]
     IB --> D
+    IG --> D
     D --> DB[(PostgreSQL)]
     DB --> Q[Consulta de pedidos]
     DB --> V[Conferência de notas]
@@ -25,6 +27,7 @@ domain/model/      modelo normalizado e regras locais
 domain/repository/ contratos de acesso aos agregados
 integration/alfa/ contrato externo e transformação do Alfa
 integration/beta/ leitura, associação e transformação dos CSVs Beta
+integration/gama/ agrupamento e transformação das linhas Gama
 infrastructure/    HTTP, configuração e persistência Spring
 ```
 
@@ -67,7 +70,7 @@ Flyway controla o schema e Hibernate usa `ddl-auto=validate`. Assim, a aplicaç�
 
 Um novo cliente deve adicionar seu contrato de entrada, parser quando necessário, mapper e endpoint de ingestão. Consulta, conferência, relatório e tabelas normalizadas não devem precisar conhecer o novo formato.
 
-O Cliente Gama será incluído somente depois da tag `parte-1`, permitindo comparar objetivamente o impacto da mudança.
+O Cliente Gama foi incluído depois da tag `parte-1`, permitindo comparar objetivamente o impacto da mudança. Consulte `docs/part-2-impact.md`.
 
 ## Trade-offs da Parte 1
 
@@ -75,4 +78,3 @@ O Cliente Gama será incluído somente depois da tag `parte-1`, permitindo compa
 - A importação é síncrona e atômica; filas e processamento em lotes seriam considerados para volumes muito altos.
 - Não há autenticação, pois ela não faz parte do problema apresentado.
 - O identificador da nota não foi fornecido; por isso, cada chamada executável gera um novo histórico.
-

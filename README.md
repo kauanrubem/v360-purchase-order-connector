@@ -11,6 +11,7 @@ O projeto será desenvolvido em duas partes:
 
 - importação JSON do Cliente Alfa;
 - importação dos dois CSVs do Cliente Beta;
+- importação JSON achatada do Cliente Gama, com conversão de caixas para unidades;
 - reimportação idempotente por cliente e número do pedido;
 - consulta paginada com filtros combináveis;
 - detalhe com quantidade pedida, recebida e saldo;
@@ -24,6 +25,7 @@ Documentação produzida até aqui:
 - [Modelo normalizado](docs/domain-model.md)
 - [Contrato OpenAPI](docs/openapi.yaml)
 - [Arquitetura](docs/architecture.md)
+- [Impacto da Parte 2](docs/part-2-impact.md)
 - [Uso de IA](AI_USAGE.md)
 
 ## Endpoints disponíveis
@@ -31,6 +33,7 @@ Documentação produzida até aqui:
 ```text
 POST /api/v1/imports/alfa
 POST /api/v1/imports/beta
+POST /api/v1/imports/gama
 GET  /api/v1/purchase-orders
 GET  /api/v1/purchase-orders/{source}/{purchaseOrderNumber}
 POST /api/v1/purchase-orders/{source}/{purchaseOrderNumber}/invoice-validations
@@ -121,7 +124,7 @@ Os testes usam H2 em modo de compatibilidade PostgreSQL, executam as migrations 
 2. Importe [postman/V360.postman_collection.json](postman/V360.postman_collection.json).
 3. Execute as pastas da coleção na ordem numérica.
 
-As cargas originais estão em `samples/alfa` e `samples/beta`.
+As cargas originais estão em `samples/alfa`, `samples/beta` e `samples/gama`.
 
 ## Decisões importantes
 
@@ -146,4 +149,4 @@ As justificativas completas estão em [docs/business-rules.md](docs/business-rul
 
 ## Parte 2
 
-O Cliente Gama será implementado após a tag `parte-1`. O impacto arquitetural será documentado separando o que foi apenas adicionado do que precisou ser modificado.
+O Cliente Gama foi implementado após a tag `parte-1`. O impacto arquitetural, incluindo o que foi apenas adicionado e o que precisou ser modificado, está em [docs/part-2-impact.md](docs/part-2-impact.md).

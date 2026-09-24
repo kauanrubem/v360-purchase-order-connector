@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "V360 Purchase Order Connector",
-    "description": "Fluxo demonstrativo da Parte 1. Execute as importações antes das consultas e conferências.",
+    "description": "Fluxo demonstrativo completo. Execute as importações antes das consultas e conferências.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -49,6 +49,18 @@
               ]
             },
             "url": "{{baseUrl}}/api/v1/imports/beta"
+          }
+        },
+        {
+          "name": "Importar Gama",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\"ped\":\"GL-778\",\"item\":1,\"cnpj_fornecedor\":\"34567890000112\",\"nome_fornecedor\":\"Transportes Ideal ME\",\"dt_criacao\":1786752000,\"cod_mat\":\"TRP-01\",\"desc_mat\":\"Pallet de madeira\",\"um\":\"CX\",\"fator_conv\":12,\"qtd_ped\":10,\"qtd_rec\":2,\"preco_unit_centavos\":120000,\"situacao\":1},\n  {\"ped\":\"GL-778\",\"item\":2,\"cnpj_fornecedor\":\"34567890000112\",\"nome_fornecedor\":\"Transportes Ideal ME\",\"dt_criacao\":1786752000,\"cod_mat\":\"TRP-09\",\"desc_mat\":\"Caixa organizadora\",\"um\":\"CX\",\"fator_conv\":3,\"qtd_ped\":4,\"qtd_rec\":0,\"preco_unit_centavos\":10000,\"situacao\":1}\n]"
+            },
+            "url": "{{baseUrl}}/api/v1/imports/gama"
           }
         }
       ]
@@ -116,4 +128,3 @@
     }
   ]
 }
-

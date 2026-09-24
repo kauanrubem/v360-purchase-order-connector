@@ -89,6 +89,8 @@ Exemplo: dez caixas com doze unidades e preço de R$ 1.200,00 por caixa resultam
 - O fator de conversão deve ser maior que zero.
 - A unidade de compra e o fator original serão preservados como dados de origem para auditoria.
 - Quando o fator for `1`, as quantidades e o preço permanecem equivalentes aos valores recebidos.
+- Quando a divisão do preço pelo fator não for exata, o preço normalizado terá seis casas decimais com arredondamento `HALF_UP`.
+- Como o formato do Gama não informa moeda, a integração assume `BRL` e registra essa premissa explicitamente.
 
 ## 4. Importação dos pedidos
 
