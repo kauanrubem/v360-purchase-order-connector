@@ -23,8 +23,8 @@ public interface InvoiceValidationRepository extends JpaRepository<InvoiceValida
             select count(validation)
             from InvoiceValidation validation
             where (:source is null or validation.source = :source)
-              and (:from is null or validation.validatedAt >= :from)
-              and (:to is null or validation.validatedAt <= :to)
+              and validation.validatedAt >= :from
+              and validation.validatedAt <= :to
             """)
     long countForReport(
             @Param("source") ClientSource source,
@@ -37,8 +37,8 @@ public interface InvoiceValidationRepository extends JpaRepository<InvoiceValida
             from InvoiceValidation validation
             where validation.status = :status
               and (:source is null or validation.source = :source)
-              and (:from is null or validation.validatedAt >= :from)
-              and (:to is null or validation.validatedAt <= :to)
+              and validation.validatedAt >= :from
+              and validation.validatedAt <= :to
             """)
     long countForReportByStatus(
             @Param("status") ValidationStatus status,
@@ -52,8 +52,8 @@ public interface InvoiceValidationRepository extends JpaRepository<InvoiceValida
             from Divergence divergence
             join divergence.validation validation
             where (:source is null or validation.source = :source)
-              and (:from is null or validation.validatedAt >= :from)
-              and (:to is null or validation.validatedAt <= :to)
+              and validation.validatedAt >= :from
+              and validation.validatedAt <= :to
             group by divergence.type
             order by divergence.type
             """)

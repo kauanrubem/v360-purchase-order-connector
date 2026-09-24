@@ -27,6 +27,8 @@ Documentação produzida até aqui:
 - [Arquitetura](docs/architecture.md)
 - [Impacto da Parte 2](docs/part-2-impact.md)
 - [Uso de IA](AI_USAGE.md)
+- [Roteiro da demonstração](docs/demo-script.md)
+- [Checklist de entrega](docs/delivery-checklist.md)
 
 ## Endpoints disponíveis
 
@@ -123,6 +125,8 @@ Os testes usam H2 em modo de compatibilidade PostgreSQL, executam as migrations 
 1. Suba a aplicação.
 2. Importe [postman/V360.postman_collection.json](postman/V360.postman_collection.json).
 3. Execute as pastas da coleção na ordem numérica.
+
+Como alternativa ao Postman, use [requests/v360.http](requests/v360.http) em uma IDE compatível com arquivos HTTP.
 
 As cargas originais estão em `samples/alfa`, `samples/beta` e `samples/gama`.
 

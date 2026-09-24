@@ -95,10 +95,13 @@ class GamaPurchaseOrderFlowTest {
     }
 
     private void importSample() throws Exception {
-        String payload = java.nio.file.Files.readString(
-                java.nio.file.Path.of("samples/gama/purchase-orders.json"),
-                StandardCharsets.UTF_8
-        );
+        String payload;
+        try (var input = getClass().getResourceAsStream("/fixtures/gama-purchase-orders.json")) {
+            if (input == null) {
+                throw new IllegalStateException("Fixture Gama não encontrada no classpath");
+            }
+            payload = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
         mockMvc.perform(post("/api/v1/imports/gama")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
@@ -107,4 +110,3 @@ class GamaPurchaseOrderFlowTest {
                 .andExpect(jsonPath("$.imported").value(2));
     }
 }
-

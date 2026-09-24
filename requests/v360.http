@@ -1,0 +1,72 @@
+@baseUrl = http://localhost:8080
+
+### Health check
+GET {{baseUrl}}/actuator/health
+
+### Importar Alfa
+POST {{baseUrl}}/api/v1/imports/alfa
+Content-Type: application/json
+
+< ../samples/alfa/purchase-orders.json
+
+### Importar Beta
+POST {{baseUrl}}/api/v1/imports/beta
+Content-Type: multipart/form-data; boundary=V360Boundary
+
+--V360Boundary
+Content-Disposition: form-data; name="headersFile"; filename="cabecalho.csv"
+Content-Type: text/csv
+
+< ../samples/beta/cabecalho.csv
+--V360Boundary
+Content-Disposition: form-data; name="itemsFile"; filename="itens.csv"
+Content-Type: text/csv
+
+< ../samples/beta/itens.csv
+--V360Boundary--
+
+### Importar Gama
+POST {{baseUrl}}/api/v1/imports/gama
+Content-Type: application/json
+
+< ../samples/gama/purchase-orders.json
+
+### Listar pedidos com saldo
+GET {{baseUrl}}/api/v1/purchase-orders?pendingOnly=true&page=0&size=20
+
+### Detalhar pedido Gama normalizado
+GET {{baseUrl}}/api/v1/purchase-orders/GAMA/GL-778
+
+### Conferência aprovada do Alfa
+POST {{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations
+Content-Type: application/json
+
+{
+  "vendorTaxId": "23456789000101",
+  "items": [
+    {
+      "materialCode": "MAT-1001",
+      "quantity": 40,
+      "totalAmount": 1836.00
+    }
+  ]
+}
+
+### Conferência com múltiplas divergências
+POST {{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations
+Content-Type: application/json
+
+{
+  "vendorTaxId": "11111111000111",
+  "items": [
+    {
+      "materialCode": "MAT-1001",
+      "quantity": 50,
+      "totalAmount": 1.00
+    }
+  ]
+}
+
+### Relatório geral
+GET {{baseUrl}}/api/v1/reports/invoice-validations
+

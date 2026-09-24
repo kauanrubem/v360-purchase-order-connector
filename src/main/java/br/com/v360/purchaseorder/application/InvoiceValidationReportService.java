@@ -18,6 +18,9 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class InvoiceValidationReportService {
 
+    private static final Instant EARLIEST_SUPPORTED_INSTANT = Instant.parse("0001-01-01T00:00:00Z");
+    private static final Instant LATEST_SUPPORTED_INSTANT = Instant.parse("9999-12-31T23:59:59.999999Z");
+
     private final InvoiceValidationRepository repository;
 
     public InvoiceValidationReportService(InvoiceValidationRepository repository) {
@@ -29,16 +32,18 @@ public class InvoiceValidationReportService {
             throw new InvalidRequestException("O início do período não pode ser posterior ao fim.");
         }
 
-        long total = repository.countForReport(source, from, to);
-        long approved = repository.countForReportByStatus(ValidationStatus.APPROVED, source, from, to);
-        long rejected = repository.countForReportByStatus(ValidationStatus.REJECTED, source, from, to);
+        Instant effectiveFrom = from == null ? EARLIEST_SUPPORTED_INSTANT : from;
+        Instant effectiveTo = to == null ? LATEST_SUPPORTED_INSTANT : to;
+
+        long total = repository.countForReport(source, effectiveFrom, effectiveTo);
+        long approved = repository.countForReportByStatus(ValidationStatus.APPROVED, source, effectiveFrom, effectiveTo);
+        long rejected = repository.countForReportByStatus(ValidationStatus.REJECTED, source, effectiveFrom, effectiveTo);
 
         Map<DivergenceType, Long> divergencesByType = new LinkedHashMap<>();
-        for (DivergenceCountProjection count : repository.countDivergencesForReport(source, from, to)) {
+        for (DivergenceCountProjection count : repository.countDivergencesForReport(source, effectiveFrom, effectiveTo)) {
             divergencesByType.put(count.getType(), count.getTotal());
         }
 
         return new InvoiceValidationReportResponse(total, approved, rejected, divergencesByType);
     }
 }
-
