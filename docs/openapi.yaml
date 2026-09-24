@@ -1,0 +1,584 @@
+openapi: 3.0.3
+info:
+  title: V360 Purchase Order Connector API
+  version: 1.0.0
+  description: API para importação, consulta e conferência de pedidos de compra normalizados.
+servers:
+  - url: http://localhost:8080
+    description: Ambiente local
+tags:
+  - name: Imports
+  - name: Purchase Orders
+  - name: Invoice Validations
+  - name: Reports
+
+paths:
+  /api/v1/imports/alfa:
+    post:
+      tags: [Imports]
+      summary: Importa pedidos no formato JSON da Alfa Energia
+      operationId: importAlfaPurchaseOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Carga processada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/imports/beta:
+    post:
+      tags: [Imports]
+      summary: Importa cabeçalhos e itens CSV da Beta Alimentos
+      operationId: importBetaPurchaseOrders
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [headersFile, itemsFile]
+              properties:
+                headersFile:
+                  type: string
+                  format: binary
+                itemsFile:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Carga processada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/imports/gama:
+    post:
+      tags: [Imports]
+      summary: Importa linhas de pedido no formato JSON da Gama Logística
+      operationId: importGamaPurchaseOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+      responses:
+        '200':
+          description: Carga processada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/purchase-orders:
+    get:
+      tags: [Purchase Orders]
+      summary: Lista pedidos normalizados
+      operationId: listPurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/SourceQuery'
+        - name: vendorTaxId
+          in: query
+          schema:
+            type: string
+          description: CNPJ com ou sem máscara.
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PurchaseOrderStatus'
+        - name: pendingOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Página de pedidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/purchase-orders/{source}/{purchaseOrderNumber}:
+    get:
+      tags: [Purchase Orders]
+      summary: Obtém os detalhes de um pedido
+      operationId: getPurchaseOrder
+      parameters:
+        - $ref: '#/components/parameters/SourcePath'
+        - $ref: '#/components/parameters/PurchaseOrderNumberPath'
+      responses:
+        '200':
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/purchase-orders/{source}/{purchaseOrderNumber}/invoice-validations:
+    post:
+      tags: [Invoice Validations]
+      summary: Confere uma nota fiscal contra um pedido
+      operationId: validateInvoice
+      parameters:
+        - $ref: '#/components/parameters/SourcePath'
+        - $ref: '#/components/parameters/PurchaseOrderNumberPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceValidationRequest'
+      responses:
+        '200':
+          description: Conferência executada, aprovada ou rejeitada por regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceValidationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/invoice-validations/{validationId}:
+    get:
+      tags: [Invoice Validations]
+      summary: Consulta uma conferência registrada
+      operationId: getInvoiceValidation
+      parameters:
+        - name: validationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conferência encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceValidationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/reports/invoice-validations:
+    get:
+      tags: [Reports]
+      summary: Consolida os resultados das conferências
+      operationId: getInvoiceValidationReport
+      parameters:
+        - $ref: '#/components/parameters/SourceQuery'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Relatório consolidado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceValidationReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  parameters:
+    SourcePath:
+      name: source
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ClientSource'
+    SourceQuery:
+      name: source
+      in: query
+      schema:
+        $ref: '#/components/schemas/ClientSource'
+    PurchaseOrderNumberPath:
+      name: purchaseOrderNumber
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  schemas:
+    ClientSource:
+      type: string
+      enum: [ALFA, BETA, GAMA]
+
+    PurchaseOrderStatus:
+      type: string
+      enum: [OPEN, CLOSED, BLOCKED]
+
+    ValidationStatus:
+      type: string
+      enum: [APPROVED, REJECTED]
+
+    ImportResult:
+      type: object
+      required: [received, imported, rejected, errors]
+      properties:
+        received:
+          type: integer
+          minimum: 0
+        imported:
+          type: integer
+          minimum: 0
+        rejected:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportError'
+
+    ImportError:
+      type: object
+      required: [code, message]
+      properties:
+        purchaseOrderNumber:
+          type: string
+        code:
+          type: string
+          example: INVALID_STATUS
+        message:
+          type: string
+        location:
+          type: string
+          example: purchase_orders[0].status
+
+    Vendor:
+      type: object
+      required: [taxId, name]
+      properties:
+        taxId:
+          type: string
+          pattern: '^\d{14}$'
+          example: '23456789000101'
+        name:
+          type: string
+          example: Metalúrgica São Jorge S.A.
+
+    PurchaseOrderSummary:
+      type: object
+      required: [id, source, number, createdAt, status, currency, vendor, hasPendingItems]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/ClientSource'
+        number:
+          type: string
+        createdAt:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/PurchaseOrderStatus'
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        vendor:
+          $ref: '#/components/schemas/Vendor'
+        hasPendingItems:
+          type: boolean
+
+    PurchaseOrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/PurchaseOrderSummary'
+        - type: object
+          required: [items, importedAt]
+          properties:
+            items:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/PurchaseOrderItem'
+            importedAt:
+              type: string
+              format: date-time
+
+    PurchaseOrderItem:
+      type: object
+      required:
+        - line
+        - materialCode
+        - description
+        - unitOfMeasure
+        - quantityOrdered
+        - quantityReceived
+        - quantityRemaining
+        - unitPrice
+      properties:
+        line:
+          type: string
+        materialCode:
+          type: string
+        description:
+          type: string
+        unitOfMeasure:
+          type: string
+        quantityOrdered:
+          type: number
+        quantityReceived:
+          type: number
+        quantityRemaining:
+          type: number
+        unitPrice:
+          type: number
+        sourceDetails:
+          $ref: '#/components/schemas/SourceItemDetails'
+
+    SourceItemDetails:
+      type: object
+      properties:
+        purchaseUnit:
+          type: string
+        conversionFactor:
+          type: number
+        purchaseUnitPrice:
+          type: number
+
+    PageMetadata:
+      type: object
+      required: [page, size, totalElements, totalPages]
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    PurchaseOrderPage:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseOrderSummary'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+
+    InvoiceValidationRequest:
+      type: object
+      required: [vendorTaxId, items]
+      properties:
+        vendorTaxId:
+          type: string
+          example: 23.456.789/0001-01
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
+
+    InvoiceItem:
+      type: object
+      required: [materialCode, quantity, totalAmount]
+      properties:
+        purchaseOrderLine:
+          type: string
+          description: Linha opcional; elimina ambiguidade quando o material se repete no pedido.
+        materialCode:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+        totalAmount:
+          type: number
+          minimum: 0
+
+    InvoiceValidationResponse:
+      type: object
+      required:
+        - id
+        - source
+        - purchaseOrderNumber
+        - vendorTaxId
+        - status
+        - validatedAt
+        - items
+        - divergences
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/ClientSource'
+        purchaseOrderNumber:
+          type: string
+        vendorTaxId:
+          type: string
+          pattern: '^\d{14}$'
+        status:
+          $ref: '#/components/schemas/ValidationStatus'
+        validatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItemSnapshot'
+        divergences:
+          type: array
+          items:
+            $ref: '#/components/schemas/Divergence'
+
+    InvoiceItemSnapshot:
+      type: object
+      required: [itemIndex, materialCode, quantity, totalAmount]
+      properties:
+        itemIndex:
+          type: integer
+          minimum: 0
+        purchaseOrderLine:
+          type: string
+        materialCode:
+          type: string
+        quantity:
+          type: number
+        totalAmount:
+          type: number
+
+    Divergence:
+      type: object
+      required: [type, message]
+      properties:
+        type:
+          $ref: '#/components/schemas/DivergenceType'
+        message:
+          type: string
+        invoiceItemIndex:
+          type: integer
+          minimum: 0
+        purchaseOrderLine:
+          type: string
+        materialCode:
+          type: string
+        expectedValue:
+          type: string
+        actualValue:
+          type: string
+
+    DivergenceType:
+      type: string
+      enum:
+        - PURCHASE_ORDER_NOT_FOUND
+        - PURCHASE_ORDER_CLOSED
+        - PURCHASE_ORDER_BLOCKED
+        - VENDOR_MISMATCH
+        - MATERIAL_NOT_FOUND
+        - PURCHASE_ORDER_ITEM_NOT_FOUND
+        - MATERIAL_MISMATCH
+        - AMBIGUOUS_MATERIAL
+        - INVALID_QUANTITY
+        - QUANTITY_EXCEEDS_REMAINING
+        - PRICE_MISMATCH
+
+    InvoiceValidationReport:
+      type: object
+      required: [total, approved, rejected, divergencesByType]
+      properties:
+        total:
+          type: integer
+          format: int64
+        approved:
+          type: integer
+          format: int64
+        rejected:
+          type: integer
+          format: int64
+        divergencesByType:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+
+    ProblemDetail:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+              message:
+                type: string
