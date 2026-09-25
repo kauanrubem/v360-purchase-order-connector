@@ -66,16 +66,18 @@ public record PurchaseOrderDetailResponse(
     public record SourceItemDetailsResponse(
             String purchaseUnit,
             BigDecimal conversionFactor,
-            BigDecimal purchaseUnitPrice
+            BigDecimal purchaseUnitPrice,
+            LocalDate createdAt
     ) {
         static SourceItemDetailsResponse from(br.com.v360.purchaseorder.domain.model.PurchaseOrderItem item) {
-            if (item.getSourcePurchaseUnit() == null) {
+            if (item.getSourcePurchaseUnit() == null && item.getSourceCreatedAt() == null) {
                 return null;
             }
             return new SourceItemDetailsResponse(
                     item.getSourcePurchaseUnit(),
                     item.getSourceConversionFactor(),
-                    item.getSourcePurchaseUnitPrice()
+                    item.getSourcePurchaseUnitPrice(),
+                    item.getSourceCreatedAt()
             );
         }
     }
