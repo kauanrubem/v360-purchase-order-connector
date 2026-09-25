@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,6 +72,106 @@ class DeltaImportFlowTest {
     }
 
     @Test
+    void combinesDeltaFiltersAndOnlyReturnsOrdersWithPendingItems() throws Exception {
+        importSample().andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "DELTA")
+                        .param("vendorTaxId", "67.890.123/0001-45")
+                        .param("status", "OPEN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(2));
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "DELTA")
+                        .param("pendingOnly", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].number").value("DL-2026-0044"));
+    }
+
+    @Test
+    void mapsAllDeltaStatusesToTheSharedVocabulary() throws Exception {
+        String orders = """
+                {"orders":[
+                  {"po_number":"DL-OPEN","created_at":"2026-09-01","status":"open","currency":"BRL",
+                   "vendor":{"tax_id":"67890123000145","name":"Fornecedor Delta"}},
+                  {"po_number":"DL-CLOSED","created_at":"2026-09-01","status":"closed","currency":"BRL",
+                   "vendor":{"tax_id":"67890123000145","name":"Fornecedor Delta"}},
+                  {"po_number":"DL-BLOCKED","created_at":"2026-09-01","status":"blocked","currency":"BRL",
+                   "vendor":{"tax_id":"67890123000145","name":"Fornecedor Delta"}}
+                ]}
+                """;
+        importPayload(orders, "{\"items\":[]}").andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/purchase-orders/DELTA/DL-OPEN"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("OPEN"));
+        mockMvc.perform(get("/api/v1/purchase-orders/DELTA/DL-CLOSED"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CLOSED"));
+        mockMvc.perform(get("/api/v1/purchase-orders/DELTA/DL-BLOCKED"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("BLOCKED"));
+    }
+
+    @Test
+    void reimportReplacesTheSnapshotWithUpdatedReceivedQuantity() throws Exception {
+        importSample().andExpect(status().isOk());
+        String updatedItems = validItems().replace("\"quantity_received\":300", "\"quantity_received\":500");
+        importPayload(validOrders(), updatedItems).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/purchase-orders/DELTA/DL-2026-0044"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].quantityReceived").value(500.0))
+                .andExpect(jsonPath("$.items[0].quantityRemaining").value(300.0));
+    }
+
+    @Test
+    void validatesInvoicesUsingTheNormalizedDeltaOrder() throws Exception {
+        importSample().andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/purchase-orders/DELTA/DL-2026-0044/invoice-validations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoice("67890123000145", "EMB-500", 500, "1875.00")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.divergences.length()").value(0));
+
+        mockMvc.perform(post("/api/v1/purchase-orders/DELTA/DL-2026-0044/invoice-validations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoice("11111111000111", "EMB-500", 600, "1.00")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.divergences.length()").value(3))
+                .andExpect(jsonPath("$.divergences[0].type").value("VENDOR_MISMATCH"))
+                .andExpect(jsonPath("$.divergences[1].type").value("QUANTITY_EXCEEDS_REMAINING"))
+                .andExpect(jsonPath("$.divergences[2].type").value("PRICE_MISMATCH"));
+    }
+
+    @Test
+    void rejectsInvoiceForClosedDeltaOrder() throws Exception {
+        importSample().andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/purchase-orders/DELTA/DL-2026-0045/invoice-validations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoice("78901234000156", "PAP-100", 1, "24.90")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.divergences[0].type").value("PURCHASE_ORDER_CLOSED"));
+    }
+
+    @Test
+    void rollsBackAllHeadersWhenAJoinedItemViolatesDomainRules() throws Exception {
+        String invalidItems = validItems().replace("\"quantity_received\":300", "\"quantity_received\":900");
+
+        importPayload(validOrders(), invalidItems)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Pedido inválido"));
+
+        mockMvc.perform(get("/api/v1/purchase-orders").param("source", "DELTA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+
+    @Test
     void rejectsMalformedJsonBeforePersistingAnything() throws Exception {
         MockMultipartFile invalidOrders = new MockMultipartFile(
                 "ordersFile", "orders.json", "application/json", "{".getBytes(StandardCharsets.UTF_8)
@@ -86,9 +188,16 @@ class DeltaImportFlowTest {
     }
 
     private org.springframework.test.web.servlet.ResultActions importSample() throws Exception {
+        return importPayload(validOrders(), validItems());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions importPayload(
+            String orders,
+            String items
+    ) throws Exception {
         return mockMvc.perform(multipart("/api/v1/imports/delta")
-                .file(file("ordersFile", "orders.json", validOrders()))
-                .file(file("itemsFile", "items.json", validItems())));
+                .file(file("ordersFile", "orders.json", orders))
+                .file(file("itemsFile", "items.json", items)));
     }
 
     private MockMultipartFile file(String part, String name, String content) {
@@ -126,5 +235,18 @@ class DeltaImportFlowTest {
                    "description":"Caixa papelão 40x30","uom":"UN","quantity_ordered":100,"quantity_received":0,"unit_price":3.75}
                 ]}
                 """;
+    }
+
+    private String invoice(String taxId, String material, int quantity, String totalAmount) {
+        return """
+                {
+                  "vendorTaxId": "%s",
+                  "items": [{
+                    "materialCode": "%s",
+                    "quantity": %d,
+                    "totalAmount": %s
+                  }]
+                }
+                """.formatted(taxId, material, quantity, totalAmount);
     }
 }
