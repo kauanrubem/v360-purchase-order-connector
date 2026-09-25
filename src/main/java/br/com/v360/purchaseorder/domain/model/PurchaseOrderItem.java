@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -54,6 +55,9 @@ public class PurchaseOrderItem {
     @Column(name = "source_purchase_unit_price", precision = 19, scale = 2)
     private BigDecimal sourcePurchaseUnitPrice;
 
+    @Column(name = "source_created_at")
+    private LocalDate sourceCreatedAt;
+
     protected PurchaseOrderItem() {
     }
 
@@ -76,6 +80,7 @@ public class PurchaseOrderItem {
                 unitPrice,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -92,6 +97,34 @@ public class PurchaseOrderItem {
             BigDecimal sourceConversionFactor,
             BigDecimal sourcePurchaseUnitPrice
     ) {
+        this(
+                line,
+                materialCode,
+                description,
+                unitOfMeasure,
+                quantityOrdered,
+                quantityReceived,
+                unitPrice,
+                sourcePurchaseUnit,
+                sourceConversionFactor,
+                sourcePurchaseUnitPrice,
+                null
+        );
+    }
+
+    public PurchaseOrderItem(
+            String line,
+            String materialCode,
+            String description,
+            String unitOfMeasure,
+            BigDecimal quantityOrdered,
+            BigDecimal quantityReceived,
+            BigDecimal unitPrice,
+            String sourcePurchaseUnit,
+            BigDecimal sourceConversionFactor,
+            BigDecimal sourcePurchaseUnitPrice,
+            LocalDate sourceCreatedAt
+    ) {
         this.line = line;
         this.materialCode = materialCode;
         this.description = description;
@@ -102,6 +135,7 @@ public class PurchaseOrderItem {
         this.sourcePurchaseUnit = sourcePurchaseUnit;
         this.sourceConversionFactor = sourceConversionFactor;
         this.sourcePurchaseUnitPrice = sourcePurchaseUnitPrice;
+        this.sourceCreatedAt = sourceCreatedAt;
     }
 
     void attachTo(PurchaseOrder purchaseOrder) {
@@ -118,6 +152,7 @@ public class PurchaseOrderItem {
         this.sourcePurchaseUnit = source.sourcePurchaseUnit;
         this.sourceConversionFactor = source.sourceConversionFactor;
         this.sourcePurchaseUnitPrice = source.sourcePurchaseUnitPrice;
+        this.sourceCreatedAt = source.sourceCreatedAt;
     }
 
     public BigDecimal getQuantityRemaining() {
@@ -162,5 +197,9 @@ public class PurchaseOrderItem {
 
     public BigDecimal getSourcePurchaseUnitPrice() {
         return sourcePurchaseUnitPrice;
+    }
+
+    public LocalDate getSourceCreatedAt() {
+        return sourceCreatedAt;
     }
 }
