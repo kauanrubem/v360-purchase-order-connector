@@ -1,4 +1,6 @@
 @baseUrl = http://localhost:8080
+@purchaseOrderSnapshotAt = 2026-09-22T23:59:59Z
+@reportSnapshotAt = 2026-09-22T23:59:59Z
 
 ### Health check
 GET {{baseUrl}}/actuator/health
@@ -31,11 +33,39 @@ Content-Type: application/json
 
 < ../samples/gama/purchase-orders.json
 
+### Importar Delta (pedidos e itens vêm de APIs/arquivos separados)
+POST {{baseUrl}}/api/v1/imports/delta
+Content-Type: multipart/form-data; boundary=V360DeltaBoundary
+
+--V360DeltaBoundary
+Content-Disposition: form-data; name="ordersFile"; filename="orders.json"
+Content-Type: application/json
+
+< ../samples/delta/orders.json
+--V360DeltaBoundary
+Content-Disposition: form-data; name="itemsFile"; filename="items.json"
+Content-Type: application/json
+
+< ../samples/delta/items.json
+--V360DeltaBoundary--
+
 ### Listar pedidos com saldo
 GET {{baseUrl}}/api/v1/purchase-orders?pendingOnly=true&page=0&size=20
 
+### Primeira página de pedidos (copie page.snapshotAt da resposta para a variável acima)
+GET {{baseUrl}}/api/v1/purchase-orders?page=0&size=2
+
+### Próxima página usando o mesmo snapshot
+GET {{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotAt={{purchaseOrderSnapshotAt}}
+
+### Filtrar pedidos Delta abertos com saldo
+GET {{baseUrl}}/api/v1/purchase-orders?source=DELTA&status=OPEN&pendingOnly=true&page=0&size=20
+
 ### Detalhar pedido Gama normalizado
 GET {{baseUrl}}/api/v1/purchase-orders/GAMA/GL-778
+
+### Detalhar pedido Delta montado a partir das duas fontes
+GET {{baseUrl}}/api/v1/purchase-orders/DELTA/DL-2026-0044
 
 ### Conferência aprovada do Alfa
 POST {{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations
@@ -68,5 +98,10 @@ Content-Type: application/json
 }
 
 ### Relatório geral
-GET {{baseUrl}}/api/v1/reports/invoice-validations
+GET {{baseUrl}}/api/v1/reports/invoice-validations?page=0&size=1
 
+### Próxima página do relatório (copie page.snapshotAt da primeira resposta)
+GET {{baseUrl}}/api/v1/reports/invoice-validations?page=1&size=1&snapshotAt={{reportSnapshotAt}}
+
+### Relatório somente com conferências aprovadas
+GET {{baseUrl}}/api/v1/reports/invoice-validations?status=APPROVED&page=0&size=20

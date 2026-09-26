@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: V360 Purchase Order Connector API
-  version: 1.0.0
-  description: API para importação, consulta e conferência de pedidos de compra normalizados.
+  version: 2.0.0
+  description: API para importação, consulta, conferência e relatório de pedidos de compra normalizados dos clientes Alfa, Beta, Gama e Delta.
 servers:
   - url: http://localhost:8080
     description: Ambiente local
@@ -88,6 +88,35 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/v1/imports/delta:
+    post:
+      tags: [Imports]
+      summary: Importa pedidos e itens JSON provenientes de fontes separadas da Delta
+      operationId: importDeltaPurchaseOrders
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ordersFile, itemsFile]
+              properties:
+                ordersFile:
+                  type: string
+                  format: binary
+                itemsFile:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Carga processada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/v1/purchase-orders:
     get:
       tags: [Purchase Orders]
@@ -109,6 +138,12 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: snapshotAt
+          in: query
+          description: Instante retornado na primeira página e reutilizado nas páginas seguintes para manter uma visão estável.
+          schema:
+            type: string
+            format: date-time
         - name: page
           in: query
           schema:
@@ -203,6 +238,10 @@ paths:
       operationId: getInvoiceValidationReport
       parameters:
         - $ref: '#/components/parameters/SourceQuery'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ValidationStatus'
         - name: from
           in: query
           schema:
@@ -213,6 +252,25 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: snapshotAt
+          in: query
+          description: Instante retornado na primeira página e reutilizado nas páginas seguintes para manter uma visão estável.
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         '200':
           description: Relatório consolidado
@@ -260,7 +318,7 @@ components:
   schemas:
     ClientSource:
       type: string
-      enum: [ALFA, BETA, GAMA]
+      enum: [ALFA, BETA, GAMA, DELTA]
 
     PurchaseOrderStatus:
       type: string
@@ -347,7 +405,6 @@ components:
           properties:
             items:
               type: array
-              minItems: 1
               items:
                 $ref: '#/components/schemas/PurchaseOrderItem'
             importedAt:
@@ -394,10 +451,13 @@ components:
           type: number
         purchaseUnitPrice:
           type: number
+        createdAt:
+          type: string
+          format: date
 
     PageMetadata:
       type: object
-      required: [page, size, totalElements, totalPages]
+      required: [page, size, totalElements, totalPages, hasNext, hasPrevious, snapshotAt]
       properties:
         page:
           type: integer
@@ -408,6 +468,13 @@ components:
           format: int64
         totalPages:
           type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+        snapshotAt:
+          type: string
+          format: date-time
 
     PurchaseOrderPage:
       type: object
@@ -539,7 +606,7 @@ components:
 
     InvoiceValidationReport:
       type: object
-      required: [total, approved, rejected, divergencesByType]
+      required: [total, approved, rejected, divergencesByType, content, page]
       properties:
         total:
           type: integer
@@ -555,6 +622,35 @@ components:
           additionalProperties:
             type: integer
             format: int64
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceValidationReportEntry'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+
+    InvoiceValidationReportEntry:
+      type: object
+      required: [id, source, purchaseOrderNumber, vendorTaxId, status, validatedAt, divergenceCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/ClientSource'
+        purchaseOrderNumber:
+          type: string
+        vendorTaxId:
+          type: string
+          pattern: '^\d{14}$'
+        status:
+          $ref: '#/components/schemas/ValidationStatus'
+        validatedAt:
+          type: string
+          format: date-time
+        divergenceCount:
+          type: integer
+          minimum: 0
 
     ProblemDetail:
       type: object

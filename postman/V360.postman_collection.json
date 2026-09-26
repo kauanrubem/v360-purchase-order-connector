@@ -1,129 +1,48 @@
 {
-  "info": {
-    "name": "V360 Purchase Order Connector",
-    "description": "Fluxo demonstrativo completo. Execute as importações antes das consultas e conferências.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
+  "info": {"name": "V360 Purchase Order Connector", "description": "Fluxo completo: execute as importações antes das consultas e conferências.", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080"
-    },
-    {
-      "key": "validationId",
-      "value": ""
-    }
+    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "validationId", "value": ""},
+    {"key": "purchaseOrderSnapshotAt", "value": ""},
+    {"key": "reportSnapshotAt", "value": ""}
   ],
   "item": [
-    {
-      "name": "01 - Health Check",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/actuator/health"
-      }
-    },
+    {"name": "01 - Health Check", "request": {"method": "GET", "url": "{{baseUrl}}/actuator/health"}},
     {
       "name": "02 - Importações",
       "item": [
-        {
-          "name": "Importar Alfa",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"purchase_orders\": [\n    {\n      \"po_number\": \"4500001234\",\n      \"created_at\": \"2026-08-05\",\n      \"status\": \"open\",\n      \"currency\": \"BRL\",\n      \"vendor\": {\"tax_id\": \"23456789000101\", \"name\": \"Metalúrgica São Jorge S.A.\"},\n      \"items\": [\n        {\"line\": 10, \"material\": \"MAT-1001\", \"description\": \"Chapa de aço 2mm\", \"uom\": \"UN\", \"quantity_ordered\": 100, \"quantity_received\": 60, \"unit_price\": 45.90},\n        {\"line\": 20, \"material\": \"MAT-1002\", \"description\": \"Perfil U 3m\", \"uom\": \"UN\", \"quantity_ordered\": 50, \"quantity_received\": 0, \"unit_price\": 128.75}\n      ]\n    }\n  ]\n}"
-            },
-            "url": "{{baseUrl}}/api/v1/imports/alfa"
-          }
-        },
-        {
-          "name": "Importar Beta",
-          "request": {
-            "method": "POST",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {"key": "headersFile", "type": "file", "src": "../samples/beta/cabecalho.csv"},
-                {"key": "itemsFile", "type": "file", "src": "../samples/beta/itens.csv"}
-              ]
-            },
-            "url": "{{baseUrl}}/api/v1/imports/beta"
-          }
-        },
-        {
-          "name": "Importar Gama",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {
-              "mode": "raw",
-              "raw": "[\n  {\"ped\":\"GL-778\",\"item\":1,\"cnpj_fornecedor\":\"34567890000112\",\"nome_fornecedor\":\"Transportes Ideal ME\",\"dt_criacao\":1786752000,\"cod_mat\":\"TRP-01\",\"desc_mat\":\"Pallet de madeira\",\"um\":\"CX\",\"fator_conv\":12,\"qtd_ped\":10,\"qtd_rec\":2,\"preco_unit_centavos\":120000,\"situacao\":1},\n  {\"ped\":\"GL-778\",\"item\":2,\"cnpj_fornecedor\":\"34567890000112\",\"nome_fornecedor\":\"Transportes Ideal ME\",\"dt_criacao\":1786752000,\"cod_mat\":\"TRP-09\",\"desc_mat\":\"Caixa organizadora\",\"um\":\"CX\",\"fator_conv\":3,\"qtd_ped\":4,\"qtd_rec\":0,\"preco_unit_centavos\":10000,\"situacao\":1}\n]"
-            },
-            "url": "{{baseUrl}}/api/v1/imports/gama"
-          }
-        }
+        {"name": "Importar Alfa", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "file", "file": {"src": "../samples/alfa/purchase-orders.json"}}, "url": "{{baseUrl}}/api/v1/imports/alfa"}},
+        {"name": "Importar Beta", "request": {"method": "POST", "body": {"mode": "formdata", "formdata": [{"key": "headersFile", "type": "file", "src": "../samples/beta/cabecalho.csv"}, {"key": "itemsFile", "type": "file", "src": "../samples/beta/itens.csv"}]}, "url": "{{baseUrl}}/api/v1/imports/beta"}},
+        {"name": "Importar Gama", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "file", "file": {"src": "../samples/gama/purchase-orders.json"}}, "url": "{{baseUrl}}/api/v1/imports/gama"}},
+        {"name": "Importar Delta", "request": {"method": "POST", "body": {"mode": "formdata", "formdata": [{"key": "ordersFile", "type": "file", "src": "../samples/delta/orders.json"}, {"key": "itemsFile", "type": "file", "src": "../samples/delta/items.json"}]}, "url": "{{baseUrl}}/api/v1/imports/delta"}}
       ]
     },
     {
       "name": "03 - Pedidos",
       "item": [
-        {
-          "name": "Listar todos",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders"}
-        },
-        {
-          "name": "Filtrar Beta abertos com saldo",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?source=BETA&status=OPEN&pendingOnly=true"}
-        },
-        {
-          "name": "Detalhar pedido Alfa",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234"}
-        }
+        {"name": "Listar primeira página", "event": [{"listen": "test", "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('purchaseOrderSnapshotAt', pm.response.json().page.snapshotAt); }"]}}], "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=0&size=2"}},
+        {"name": "Listar próxima página com mesmo snapshot", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotAt={{purchaseOrderSnapshotAt}}"}},
+        {"name": "Filtrar Beta abertos com saldo", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?source=BETA&status=OPEN&pendingOnly=true&page=0&size=20"}},
+        {"name": "Filtrar Delta abertos com saldo", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?source=DELTA&status=OPEN&pendingOnly=true&page=0&size=20"}},
+        {"name": "Detalhar pedido Alfa", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234"}},
+        {"name": "Detalhar pedido Delta", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders/DELTA/DL-2026-0044"}}
       ]
     },
     {
       "name": "04 - Conferências",
       "item": [
-        {
-          "name": "Nota aprovada",
-          "event": [{
-            "listen": "test",
-            "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('validationId', pm.response.json().id); }"]}
-          }],
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {"mode": "raw", "raw": "{\n  \"vendorTaxId\": \"23456789000101\",\n  \"items\": [{\"materialCode\": \"MAT-1001\", \"quantity\": 40, \"totalAmount\": 1836.00}]\n}"},
-            "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations"
-          }
-        },
-        {
-          "name": "Nota com múltiplas divergências",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {"mode": "raw", "raw": "{\n  \"vendorTaxId\": \"11111111000111\",\n  \"items\": [{\"materialCode\": \"MAT-1001\", \"quantity\": 50, \"totalAmount\": 1.00}]\n}"},
-            "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations"
-          }
-        },
-        {
-          "name": "Consultar última conferência aprovada",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/invoice-validations/{{validationId}}"}
-        }
+        {"name": "Nota aprovada", "event": [{"listen": "test", "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('validationId', pm.response.json().id); }"]}}], "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"vendorTaxId\": \"23456789000101\",\n  \"items\": [{\"materialCode\": \"MAT-1001\", \"quantity\": 40, \"totalAmount\": 1836.00}]\n}"}, "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations"}},
+        {"name": "Nota com múltiplas divergências", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"vendorTaxId\": \"11111111000111\",\n  \"items\": [{\"materialCode\": \"MAT-1001\", \"quantity\": 50, \"totalAmount\": 1.00}]\n}"}, "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234/invoice-validations"}},
+        {"name": "Consultar última conferência aprovada", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/invoice-validations/{{validationId}}"}}
       ]
     },
     {
       "name": "05 - Relatório",
       "item": [
-        {
-          "name": "Relatório geral",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations"}
-        },
-        {
-          "name": "Relatório Alfa por período",
-          "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations?source=ALFA&from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z"}
-        }
+        {"name": "Relatório geral - primeira página", "event": [{"listen": "test", "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('reportSnapshotAt', pm.response.json().page.snapshotAt); }"]}}], "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations?page=0&size=1"}},
+        {"name": "Relatório geral - próxima página com mesmo snapshot", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations?page=1&size=1&snapshotAt={{reportSnapshotAt}}"}},
+        {"name": "Relatório somente aprovadas", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations?status=APPROVED&page=0&size=20"}},
+        {"name": "Relatório Alfa por período", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/reports/invoice-validations?source=ALFA&from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&page=0&size=20"}}
       ]
     }
   ]
