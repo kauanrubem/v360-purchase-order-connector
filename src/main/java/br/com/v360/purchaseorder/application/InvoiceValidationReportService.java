@@ -6,7 +6,12 @@ import br.com.v360.purchaseorder.domain.model.DivergenceType;
 import br.com.v360.purchaseorder.domain.model.ValidationStatus;
 import br.com.v360.purchaseorder.domain.repository.DivergenceCountProjection;
 import br.com.v360.purchaseorder.domain.repository.InvoiceValidationRepository;
+import br.com.v360.purchaseorder.domain.repository.InvoiceValidationReportEntryProjection;
 import br.com.v360.purchaseorder.infrastructure.web.dto.InvoiceValidationReportResponse;
+import br.com.v360.purchaseorder.infrastructure.web.dto.InvoiceValidationReportEntryResponse;
+import br.com.v360.purchaseorder.infrastructure.web.dto.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,23 +32,58 @@ public class InvoiceValidationReportService {
         this.repository = repository;
     }
 
-    public InvoiceValidationReportResponse generate(ClientSource source, Instant from, Instant to) {
+    public InvoiceValidationReportResponse generate(
+            ClientSource source,
+            ValidationStatus status,
+            Instant from,
+            Instant to,
+            Instant snapshotAt,
+            Pageable pageable
+    ) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new InvalidRequestException("O início do período não pode ser posterior ao fim.");
         }
 
         Instant effectiveFrom = from == null ? EARLIEST_SUPPORTED_INSTANT : from;
-        Instant effectiveTo = to == null ? LATEST_SUPPORTED_INSTANT : to;
+        Instant requestedTo = to == null ? LATEST_SUPPORTED_INSTANT : to;
+        Instant effectiveTo = requestedTo.isBefore(snapshotAt) ? requestedTo : snapshotAt;
 
-        long total = repository.countForReport(source, effectiveFrom, effectiveTo);
-        long approved = repository.countForReportByStatus(ValidationStatus.APPROVED, source, effectiveFrom, effectiveTo);
-        long rejected = repository.countForReportByStatus(ValidationStatus.REJECTED, source, effectiveFrom, effectiveTo);
+        long total = repository.countForReport(source, status, effectiveFrom, effectiveTo);
+        long approved = status == ValidationStatus.REJECTED
+                ? 0
+                : repository.countForReportByStatus(ValidationStatus.APPROVED, source, effectiveFrom, effectiveTo);
+        long rejected = status == ValidationStatus.APPROVED
+                ? 0
+                : repository.countForReportByStatus(ValidationStatus.REJECTED, source, effectiveFrom, effectiveTo);
 
         Map<DivergenceType, Long> divergencesByType = new LinkedHashMap<>();
-        for (DivergenceCountProjection count : repository.countDivergencesForReport(source, effectiveFrom, effectiveTo)) {
+        for (DivergenceCountProjection count : repository.countDivergencesForReport(
+                source,
+                status,
+                effectiveFrom,
+                effectiveTo
+        )) {
             divergencesByType.put(count.getType(), count.getTotal());
         }
 
-        return new InvoiceValidationReportResponse(total, approved, rejected, divergencesByType);
+        Page<InvoiceValidationReportEntryProjection> entries = repository.findReportEntries(
+                source,
+                status,
+                effectiveFrom,
+                effectiveTo,
+                pageable
+        );
+        PageResponse<InvoiceValidationReportEntryResponse> page = PageResponse.from(
+                entries.map(InvoiceValidationReportEntryResponse::from),
+                snapshotAt
+        );
+        return new InvoiceValidationReportResponse(
+                total,
+                approved,
+                rejected,
+                divergencesByType,
+                page.content(),
+                page.page()
+        );
     }
 }

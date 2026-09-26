@@ -10,6 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +33,9 @@ class InvoiceValidationReportFlowTest {
     @Autowired
     private InvoiceValidationRepository validationRepository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setUp() throws Exception {
         validationRepository.deleteAll();
@@ -48,7 +54,10 @@ class InvoiceValidationReportFlowTest {
                 .andExpect(jsonPath("$.rejected").value(1))
                 .andExpect(jsonPath("$.divergencesByType.VENDOR_MISMATCH").value(1))
                 .andExpect(jsonPath("$.divergencesByType.QUANTITY_EXCEEDS_REMAINING").value(1))
-                .andExpect(jsonPath("$.divergencesByType.PRICE_MISMATCH").value(1));
+                .andExpect(jsonPath("$.divergencesByType.PRICE_MISMATCH").value(1))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.hasNext").value(false));
     }
 
     @Test
@@ -66,6 +75,53 @@ class InvoiceValidationReportFlowTest {
                 .andExpect(jsonPath("$.total").value(0))
                 .andExpect(jsonPath("$.approved").value(0))
                 .andExpect(jsonPath("$.rejected").value(0));
+    }
+
+    @Test
+    void paginatesHistoryAndKeepsTheSameSnapshotBetweenPages() throws Exception {
+        MvcResult firstPage = mockMvc.perform(get("/api/v1/reports/invoice-validations")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.page.page").value(0))
+                .andExpect(jsonPath("$.page.size").value(1))
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.totalPages").value(2))
+                .andExpect(jsonPath("$.page.hasNext").value(true))
+                .andExpect(jsonPath("$.page.hasPrevious").value(false))
+                .andReturn();
+        JsonNode response = objectMapper.readTree(firstPage.getResponse().getContentAsString());
+        String snapshotAt = response.path("page").path("snapshotAt").asText();
+
+        mockMvc.perform(get("/api/v1/reports/invoice-validations")
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("snapshotAt", snapshotAt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.page.snapshotAt").value(snapshotAt))
+                .andExpect(jsonPath("$.page.hasNext").value(false))
+                .andExpect(jsonPath("$.page.hasPrevious").value(true));
+    }
+
+    @Test
+    void filtersSummaryAndHistoryByValidationStatus() throws Exception {
+        mockMvc.perform(get("/api/v1/reports/invoice-validations")
+                        .param("status", "APPROVED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.approved").value(1))
+                .andExpect(jsonPath("$.rejected").value(0))
+                .andExpect(jsonPath("$.divergencesByType").isEmpty())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].status").value("APPROVED"))
+                .andExpect(jsonPath("$.content[0].divergenceCount").value(0));
+    }
+
+    @Test
+    void rejectsPageSizeAboveTheConfiguredLimit() throws Exception {
+        mockMvc.perform(get("/api/v1/reports/invoice-validations").param("size", "101"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -123,4 +179,3 @@ class InvoiceValidationReportFlowTest {
                 .andExpect(status().isOk());
     }
 }
-
