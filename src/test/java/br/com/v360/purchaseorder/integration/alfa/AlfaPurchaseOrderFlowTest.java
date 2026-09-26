@@ -10,6 +10,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +34,9 @@ class AlfaPurchaseOrderFlowTest {
 
     @Autowired
     private InvoiceValidationRepository validationRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void cleanDatabase() {
@@ -80,6 +87,40 @@ class AlfaPurchaseOrderFlowTest {
                 .andExpect(jsonPath("$.title").value("Pedido inválido"));
     }
 
+    @Test
+    void keepsTheSameScanBoundaryWhileNewOrdersAreImported() throws Exception {
+        importPayload(validPayloadFor("4500001234", 60));
+
+        MvcResult firstPage = mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "ALFA")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.page.hasNext").value(false))
+                .andExpect(jsonPath("$.page.hasPrevious").value(false))
+                .andReturn();
+        JsonNode firstResponse = objectMapper.readTree(firstPage.getResponse().getContentAsString());
+        String snapshotAt = firstResponse.path("page").path("snapshotAt").asText();
+
+        importPayload(validPayloadFor("4500009999", 0));
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "ALFA")
+                        .param("snapshotAt", snapshotAt)
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.snapshotAt").value(snapshotAt))
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].number").value("4500001234"));
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "ALFA")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.hasNext").value(true));
+    }
+
     private void importPayload(String payload) throws Exception {
         mockMvc.perform(post("/api/v1/imports/alfa")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,10 +129,14 @@ class AlfaPurchaseOrderFlowTest {
     }
 
     private String validPayload(int received) {
+        return validPayloadFor("4500001234", received);
+    }
+
+    private String validPayloadFor(String number, int received) {
         return """
                 {
                   "purchase_orders": [{
-                    "po_number": "4500001234",
+                    "po_number": "%s",
                     "created_at": "2026-08-05",
                     "status": "open",
                     "currency": "BRL",
@@ -110,6 +155,6 @@ class AlfaPurchaseOrderFlowTest {
                     }]
                   }]
                 }
-                """.formatted(received);
+                """.formatted(number, received);
     }
 }

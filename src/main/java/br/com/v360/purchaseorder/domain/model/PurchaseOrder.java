@@ -63,6 +63,9 @@ public class PurchaseOrder {
     @Column(name = "imported_at", nullable = false)
     private Instant importedAt;
 
+    @Column(name = "first_imported_at", nullable = false, updatable = false)
+    private Instant firstImportedAt;
+
     protected PurchaseOrder() {
     }
 
@@ -78,6 +81,7 @@ public class PurchaseOrder {
     ) {
         this.source = source;
         this.number = number;
+        this.firstImportedAt = importedAt;
         replaceData(createdAt, status, currency, vendor, items, importedAt);
     }
 
@@ -150,5 +154,9 @@ public class PurchaseOrder {
 
     public Instant getImportedAt() {
         return importedAt;
+    }
+
+    public Instant getFirstImportedAt() {
+        return firstImportedAt;
     }
 }

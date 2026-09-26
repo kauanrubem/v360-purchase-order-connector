@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,15 +18,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
+import java.time.Instant;
+
 @Validated
 @RestController
 @RequestMapping("/api/v1/purchase-orders")
 public class PurchaseOrderController {
 
     private final PurchaseOrderQueryService queryService;
+    private final Clock clock;
 
-    public PurchaseOrderController(PurchaseOrderQueryService queryService) {
+    public PurchaseOrderController(PurchaseOrderQueryService queryService, Clock clock) {
         this.queryService = queryService;
+        this.clock = clock;
     }
 
     @GetMapping
@@ -34,11 +40,22 @@ public class PurchaseOrderController {
             @RequestParam(required = false) String vendorTaxId,
             @RequestParam(required = false) PurchaseOrderStatus status,
             @RequestParam(defaultValue = "false") boolean pendingOnly,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Instant snapshotAt,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending().and(Sort.by("number")));
-        return PageResponse.from(queryService.search(source, vendorTaxId, status, pendingOnly, pageable));
+        Instant effectiveSnapshotAt = snapshotAt == null ? clock.instant() : snapshotAt;
+        PageRequest pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Order.asc("firstImportedAt"), Sort.Order.asc("id"))
+        );
+        return PageResponse.from(
+                queryService.search(source, vendorTaxId, status, pendingOnly, effectiveSnapshotAt, pageable),
+                effectiveSnapshotAt
+        );
     }
 
     @GetMapping("/{source}/{purchaseOrderNumber}")
@@ -49,4 +66,3 @@ public class PurchaseOrderController {
         return queryService.findOne(source, purchaseOrderNumber);
     }
 }
-

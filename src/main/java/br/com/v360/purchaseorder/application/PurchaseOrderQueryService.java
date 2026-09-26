@@ -12,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 @Service
 @Transactional(readOnly = true)
 public class PurchaseOrderQueryService {
@@ -27,10 +29,11 @@ public class PurchaseOrderQueryService {
             String vendorTaxId,
             PurchaseOrderStatus status,
             boolean pendingOnly,
+            Instant snapshotAt,
             Pageable pageable
     ) {
         String normalizedTaxId = vendorTaxId == null ? null : digitsOnly(vendorTaxId);
-        return repository.search(source, normalizedTaxId, status, pendingOnly, pageable)
+        return repository.search(source, normalizedTaxId, status, pendingOnly, snapshotAt, pageable)
                 .map(PurchaseOrderSummaryResponse::from);
     }
 
@@ -46,4 +49,3 @@ public class PurchaseOrderQueryService {
         return value.replaceAll("\\D", "");
     }
 }
-

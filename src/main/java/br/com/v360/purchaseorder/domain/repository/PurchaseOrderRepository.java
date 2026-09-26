@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UUID> {
 
@@ -21,7 +22,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
     @Query(
             value = """
                     select po from PurchaseOrder po
-                    where (:source is null or po.source = :source)
+                    where po.firstImportedAt <= :snapshotAt
+                      and (:source is null or po.source = :source)
                       and (:vendorTaxId is null or po.vendor.taxId = :vendorTaxId)
                       and (:status is null or po.status = :status)
                       and (:pendingOnly = false or exists (
@@ -32,7 +34,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
                     """,
             countQuery = """
                     select count(po) from PurchaseOrder po
-                    where (:source is null or po.source = :source)
+                    where po.firstImportedAt <= :snapshotAt
+                      and (:source is null or po.source = :source)
                       and (:vendorTaxId is null or po.vendor.taxId = :vendorTaxId)
                       and (:status is null or po.status = :status)
                       and (:pendingOnly = false or exists (
@@ -47,7 +50,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
             @Param("vendorTaxId") String vendorTaxId,
             @Param("status") PurchaseOrderStatus status,
             @Param("pendingOnly") boolean pendingOnly,
+            @Param("snapshotAt") Instant snapshotAt,
             Pageable pageable
     );
 }
-
