@@ -100,16 +100,16 @@ class AlfaPurchaseOrderFlowTest {
                 .andExpect(jsonPath("$.page.hasPrevious").value(false))
                 .andReturn();
         JsonNode firstResponse = objectMapper.readTree(firstPage.getResponse().getContentAsString());
-        String snapshotAt = firstResponse.path("page").path("snapshotAt").asText();
+        String snapshotId = firstResponse.path("page").path("snapshotId").asText();
 
         importPayload(validPayloadFor("4500009999", 0));
 
         mockMvc.perform(get("/api/v1/purchase-orders")
                         .param("source", "ALFA")
-                        .param("snapshotAt", snapshotAt)
+                        .param("snapshotId", snapshotId)
                         .param("size", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page.snapshotAt").value(snapshotAt))
+                .andExpect(jsonPath("$.page.snapshotId").value(snapshotId))
                 .andExpect(jsonPath("$.page.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].number").value("4500001234"));
 
@@ -119,6 +119,66 @@ class AlfaPurchaseOrderFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page.totalElements").value(2))
                 .andExpect(jsonPath("$.page.hasNext").value(true));
+    }
+
+    @Test
+    void keepsFilteredPagesStableWhileExistingOrdersAreReimported() throws Exception {
+        importPayload(validPayloadFor("4500001234", 10));
+        importPayload(validPayloadFor("4500005678", 20));
+
+        MvcResult firstPage = mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "ALFA")
+                        .param("status", "OPEN")
+                        .param("pendingOnly", "true")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].number").value("4500001234"))
+                .andReturn();
+        String snapshotId = objectMapper.readTree(firstPage.getResponse().getContentAsString())
+                .path("page").path("snapshotId").asText();
+
+        importPayload(validPayloadFor("4500001234", 100, "closed"));
+        importPayload(validPayloadFor("4500005678", 100, "closed"));
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "ALFA")
+                        .param("status", "OPEN")
+                        .param("pendingOnly", "true")
+                        .param("snapshotId", snapshotId)
+                        .param("page", "1")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.hasPrevious").value(true))
+                .andExpect(jsonPath("$.content[0].number").value("4500005678"))
+                .andExpect(jsonPath("$.content[0].status").value("OPEN"))
+                .andExpect(jsonPath("$.content[0].hasPendingItems").value(true));
+    }
+
+    @Test
+    void rejectsChangingFiltersInsideTheSameSnapshot() throws Exception {
+        importPayload(validPayloadFor("4500001234", 10));
+        MvcResult response = mockMvc.perform(get("/api/v1/purchase-orders").param("source", "ALFA"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String snapshotId = objectMapper.readTree(response.getResponse().getContentAsString())
+                .path("page").path("snapshotId").asText();
+
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("source", "BETA")
+                        .param("snapshotId", snapshotId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requisição inválida"));
+    }
+
+    @Test
+    void requiresSnapshotIdAfterTheFirstPage() throws Exception {
+        mockMvc.perform(get("/api/v1/purchase-orders")
+                        .param("page", "1")
+                        .param("size", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requisição inválida"));
     }
 
     private void importPayload(String payload) throws Exception {
@@ -133,12 +193,16 @@ class AlfaPurchaseOrderFlowTest {
     }
 
     private String validPayloadFor(String number, int received) {
+        return validPayloadFor(number, received, "open");
+    }
+
+    private String validPayloadFor(String number, int received, String status) {
         return """
                 {
                   "purchase_orders": [{
                     "po_number": "%s",
                     "created_at": "2026-08-05",
-                    "status": "open",
+                    "status": "%s",
                     "currency": "BRL",
                     "vendor": {
                       "tax_id": "23.456.789/0001-01",
@@ -155,6 +219,6 @@ class AlfaPurchaseOrderFlowTest {
                     }]
                   }]
                 }
-                """.formatted(number, received);
+                """.formatted(number, status, received);
     }
 }

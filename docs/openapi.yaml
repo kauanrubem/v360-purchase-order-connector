@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: V360 Purchase Order Connector API
-  version: 2.0.0
+  version: 2.1.0
   description: API para importação, consulta, conferência e relatório de pedidos de compra normalizados dos clientes Alfa, Beta, Gama e Delta.
 servers:
   - url: http://localhost:8080
@@ -138,12 +138,12 @@ paths:
           schema:
             type: boolean
             default: false
-        - name: snapshotAt
+        - name: snapshotId
           in: query
-          description: Instante retornado na primeira página e reutilizado nas páginas seguintes para manter uma visão estável.
+          description: Identificador retornado na primeira página e reutilizado com os mesmos filtros nas páginas seguintes. O snapshot materializado é mantido por 24 horas.
           schema:
             type: string
-            format: date-time
+            format: uuid
         - name: page
           in: query
           schema:
@@ -457,7 +457,7 @@ components:
 
     PageMetadata:
       type: object
-      required: [page, size, totalElements, totalPages, hasNext, hasPrevious, snapshotAt]
+      required: [page, size, totalElements, totalPages, hasNext, hasPrevious]
       properties:
         page:
           type: integer
@@ -475,6 +475,13 @@ components:
         snapshotAt:
           type: string
           format: date-time
+          nullable: true
+          description: Limite temporal da visão; usado diretamente pelo relatório e informa quando o snapshot de pedidos foi criado.
+        snapshotId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Identificador do snapshot materializado da listagem de pedidos.
 
     PurchaseOrderPage:
       type: object

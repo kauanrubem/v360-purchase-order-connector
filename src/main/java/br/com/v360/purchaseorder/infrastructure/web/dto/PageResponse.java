@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record PageResponse<T>(List<T> content, Metadata page) {
 
@@ -12,6 +13,10 @@ public record PageResponse<T>(List<T> content, Metadata page) {
     }
 
     public static <T> PageResponse<T> from(Page<T> source, Instant snapshotAt) {
+        return from(source, snapshotAt, null);
+    }
+
+    public static <T> PageResponse<T> from(Page<T> source, Instant snapshotAt, UUID snapshotId) {
         return new PageResponse<>(
                 source.getContent(),
                 new Metadata(
@@ -21,7 +26,8 @@ public record PageResponse<T>(List<T> content, Metadata page) {
                         source.getTotalPages(),
                         source.hasNext(),
                         source.hasPrevious(),
-                        snapshotAt
+                        snapshotAt,
+                        snapshotId
                 )
         );
     }
@@ -33,7 +39,8 @@ public record PageResponse<T>(List<T> content, Metadata page) {
             int totalPages,
             boolean hasNext,
             boolean hasPrevious,
-            Instant snapshotAt
+            Instant snapshotAt,
+            UUID snapshotId
     ) {
     }
 }

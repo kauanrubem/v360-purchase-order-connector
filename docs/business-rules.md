@@ -163,7 +163,7 @@ A consulta detalhada exibirá, para cada item:
 - preço unitário normalizado;
 - unidade normalizada.
 
-A listagem será paginada para evitar respostas sem limite quando houver grandes volumes. A primeira página devolve um `snapshotAt`; sua reutilização nas páginas seguintes impede que novas importações alterem a visão durante a navegação. A ordenação usa o primeiro instante de importação em ordem crescente e o identificador como desempate.
+A listagem será paginada para evitar respostas sem limite quando houver grandes volumes. A primeira página materializa a sequência e os resumos dos pedidos e devolve um `snapshotId`. Sua reutilização com os mesmos filtros impede que novas importações ou reimportações alterem a visão durante a navegação. A ordenação usa o primeiro instante de importação em ordem crescente e o identificador como desempate. O snapshot é válido por 24 horas; alterar os filtros dentro dele é rejeitado.
 
 ## 6. Conferência de nota fiscal
 

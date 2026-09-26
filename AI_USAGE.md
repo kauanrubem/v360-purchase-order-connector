@@ -38,7 +38,7 @@ Esses episódios reforçaram que uma resposta plausível da IA não substitui co
 - executei `git diff --check` para detectar problemas de formatação;
 - registrei decisões e limitações antes de expandir o escopo.
 
-Na Parte 2, os testes também validaram numericamente a conversão do Gama: 10 caixas de 12 unidades foram normalizadas para 120 unidades, com 24 recebidas e preço de R$ 100,00 por unidade. Para o Delta, validaram a correlação entre as duas fontes, item órfão, pedido sem itens, reimportação e reutilização das regras de conferência. A paginação foi testada para garantir estabilidade com o mesmo `snapshotAt`.
+Na Parte 2, os testes também validaram numericamente a conversão do Gama: 10 caixas de 12 unidades foram normalizadas para 120 unidades, com 24 recebidas e preço de R$ 100,00 por unidade. Para o Delta, validaram a correlação entre as duas fontes, item órfão, pedido sem itens, reimportação e reutilização das regras de conferência. A paginação foi testada com um `snapshotId`, inclusive reimportando pedidos entre páginas e alterando os campos usados nos filtros.
 
 ## Como garanto que entendo o código
 

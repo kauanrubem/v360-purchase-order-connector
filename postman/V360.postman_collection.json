@@ -3,7 +3,7 @@
   "variable": [
     {"key": "baseUrl", "value": "http://localhost:8080"},
     {"key": "validationId", "value": ""},
-    {"key": "purchaseOrderSnapshotAt", "value": ""},
+    {"key": "purchaseOrderSnapshotId", "value": ""},
     {"key": "reportSnapshotAt", "value": ""}
   ],
   "item": [
@@ -20,8 +20,8 @@
     {
       "name": "03 - Pedidos",
       "item": [
-        {"name": "Listar primeira página", "event": [{"listen": "test", "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('purchaseOrderSnapshotAt', pm.response.json().page.snapshotAt); }"]}}], "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=0&size=2"}},
-        {"name": "Listar próxima página com mesmo snapshot", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotAt={{purchaseOrderSnapshotAt}}"}},
+        {"name": "Listar primeira página", "event": [{"listen": "test", "script": {"exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('purchaseOrderSnapshotId', pm.response.json().page.snapshotId); }"]}}], "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=0&size=2"}},
+        {"name": "Listar próxima página com mesmo snapshot", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotId={{purchaseOrderSnapshotId}}"}},
         {"name": "Filtrar Beta abertos com saldo", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?source=BETA&status=OPEN&pendingOnly=true&page=0&size=20"}},
         {"name": "Filtrar Delta abertos com saldo", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders?source=DELTA&status=OPEN&pendingOnly=true&page=0&size=20"}},
         {"name": "Detalhar pedido Alfa", "request": {"method": "GET", "url": "{{baseUrl}}/api/v1/purchase-orders/ALFA/4500001234"}},

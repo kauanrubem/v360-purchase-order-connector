@@ -49,7 +49,9 @@ A importação é transacional para erros estruturais ou de domínio. No Delta, 
 
 ## Consultas e paginação
 
-Pedidos são ordenados pelo primeiro instante de importação em ordem crescente; conferências, pelo instante de validação em ordem decrescente. Ambos usam o identificador como desempate. Na primeira página, a API fixa e devolve `snapshotAt`; páginas seguintes podem reutilizar esse valor. Assim, registros inseridos durante a navegação não deslocam o conteúdo da visão já iniciada.
+Pedidos são ordenados pelo primeiro instante de importação em ordem crescente e pelo identificador como desempate. Na primeira página, a API materializa essa sequência e os resumos em `purchase_order_scans` e devolve um `snapshotId`. As páginas seguintes usam o mesmo identificador e os mesmos filtros, portanto novas importações e atualizações de pedidos existentes não deslocam, duplicam ou removem elementos da varredura. Os snapshots expiram após 24 horas e a limpeza ocorre ao iniciar uma nova consulta.
+
+O relatório não precisa materializar os registros porque conferências são imutáveis. Ele usa `snapshotAt`, ordenação por instante de validação decrescente e identificador como desempate.
 
 ## Fluxo de conferência
 

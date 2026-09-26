@@ -81,6 +81,12 @@ Registro imutável de uma tentativa executável de conferência.
 | `divergences` | `List<Divergence>` | sim |
 | `validatedAt` | `Instant` | sim |
 
+### PurchaseOrderScan
+
+Representa uma varredura estável e temporária da listagem. Guarda o identificador, o instante de criação e os filtros utilizados. Cada `PurchaseOrderScanEntry` preserva a posição e o resumo do pedido no início da varredura. Dessa forma, uma reimportação posterior não altera as páginas já iniciadas.
+
+Os snapshots são persistidos porque a navegação pode atravessar reinicializações da aplicação, mas têm retenção de 24 horas. A migration V7 criou as tabelas e os índices necessários; os registros não substituem nem duplicam o agregado de pedido, pois existem apenas para leitura paginada consistente.
+
 ### InvoiceItemSnapshot
 
 | Campo | Tipo Java | Obrigatório |

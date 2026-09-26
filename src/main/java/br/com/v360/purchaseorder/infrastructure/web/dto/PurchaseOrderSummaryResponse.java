@@ -3,6 +3,7 @@ package br.com.v360.purchaseorder.infrastructure.web.dto;
 import br.com.v360.purchaseorder.domain.model.ClientSource;
 import br.com.v360.purchaseorder.domain.model.PurchaseOrder;
 import br.com.v360.purchaseorder.domain.model.PurchaseOrderStatus;
+import br.com.v360.purchaseorder.domain.model.PurchaseOrderScanEntry;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -29,5 +30,17 @@ public record PurchaseOrderSummaryResponse(
                 purchaseOrder.hasPendingItems()
         );
     }
-}
 
+    public static PurchaseOrderSummaryResponse from(PurchaseOrderScanEntry entry) {
+        return new PurchaseOrderSummaryResponse(
+                entry.getPurchaseOrderId(),
+                entry.getSource(),
+                entry.getNumber(),
+                entry.getCreatedAt(),
+                entry.getStatus(),
+                entry.getCurrency(),
+                new VendorResponse(entry.getVendorTaxId(), entry.getVendorName()),
+                entry.hasPendingItems()
+        );
+    }
+}

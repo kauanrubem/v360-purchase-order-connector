@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8080
-@purchaseOrderSnapshotAt = 2026-09-22T23:59:59Z
+@purchaseOrderSnapshotId = substitua-pelo-snapshotId-da-primeira-pagina
 @reportSnapshotAt = 2026-09-22T23:59:59Z
 
 ### Health check
@@ -52,11 +52,11 @@ Content-Type: application/json
 ### Listar pedidos com saldo
 GET {{baseUrl}}/api/v1/purchase-orders?pendingOnly=true&page=0&size=20
 
-### Primeira página de pedidos (copie page.snapshotAt da resposta para a variável acima)
+### Primeira página de pedidos (copie page.snapshotId da resposta para a variável acima)
 GET {{baseUrl}}/api/v1/purchase-orders?page=0&size=2
 
 ### Próxima página usando o mesmo snapshot
-GET {{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotAt={{purchaseOrderSnapshotAt}}
+GET {{baseUrl}}/api/v1/purchase-orders?page=1&size=2&snapshotId={{purchaseOrderSnapshotId}}
 
 ### Filtrar pedidos Delta abertos com saldo
 GET {{baseUrl}}/api/v1/purchase-orders?source=DELTA&status=OPEN&pendingOnly=true&page=0&size=20

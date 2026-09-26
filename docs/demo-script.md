@@ -63,7 +63,7 @@ Execute uma nota aprovada e outra com fornecedor, quantidade e preço divergente
 
 ## 7. Paginação, relatório e evolução — 90 segundos
 
-Liste pedidos com `size=2`, copie o `snapshotAt` retornado e use-o na página seguinte. Explique que isso mantém uma visão estável enquanto novas importações acontecem.
+Liste pedidos com `size=2`, copie o `snapshotId` retornado e use-o, com os mesmos filtros, na página seguinte. Explique que a sequência foi materializada e continua estável mesmo se um pedido existente for reimportado e mudar de situação ou saldo.
 
 Mostre o relatório paginado com aprovadas, rejeitadas, motivos e filtro por status. Depois execute:
 

@@ -12,7 +12,7 @@
 - assembler para correlacionar as duas fontes pelo número do pedido;
 - endpoint `POST /api/v1/imports/delta` e rejeição explícita de itens órfãos;
 - arquivos de amostra e testes de importação, reenvio, consulta e conferência Delta;
-- paginação estável por `snapshotAt` para pedidos e relatório;
+- snapshots materializados para pedidos e limite temporal `snapshotAt` para o relatório;
 - listagem detalhada e filtro por resultado no relatório de conferências.
 
 Os casos de uso de consulta, conferência e relatório não receberam condições específicas para Gama ou Delta. Depois da normalização, eles trabalham com os mesmos objetos usados por Alfa e Beta.
@@ -27,7 +27,7 @@ Os casos de uso de consulta, conferência e relatório não receberam condiçõe
 
 Depois, ganhou também a data opcional do item, necessária porque o Delta informa datas independentes no cabeçalho e nas linhas. Pedidos passaram a aceitar uma lista vazia de itens para representar corretamente um cabeçalho Delta que ainda não possui linhas na segunda fonte.
 
-Esses campos não participam das regras centrais. Eles preservam a transformação para auditoria e aparecem como `sourceDetails` no detalhe do pedido. As migrations V3 e V4 criaram colunas e índices de forma aditiva, portanto pedidos Alfa e Beta continuam válidos. As migrations V5 e V6 adicionaram suporte e índices para as consultas por snapshot.
+Esses campos não participam das regras centrais. Eles preservam a transformação para auditoria e aparecem como `sourceDetails` no detalhe do pedido. As migrations V3 e V4 criaram colunas e índices de forma aditiva, portanto pedidos Alfa e Beta continuam válidos. As migrations V5 e V6 adicionaram suporte e índices para as consultas, e a V7 criou os snapshots materializados de pedidos.
 
 ## Decisões específicas
 
@@ -47,8 +47,10 @@ Esses campos não participam das regras centrais. Eles preservam a transformaç�
 
 ### Paginação e relatório
 
-- `snapshotAt` fixa o limite temporal da primeira página e é reaproveitável nas seguintes.
-- O identificador atua como desempate da ordenação para produzir páginas determinísticas.
+- `snapshotId` identifica a sequência materializada da listagem de pedidos e é reaproveitado nas páginas seguintes.
+- O snapshot guarda também os resumos, protegendo a varredura contra reimportações que alterem campos filtrados; sua retenção é de 24 horas.
+- No relatório, que contém registros imutáveis, `snapshotAt` fixa o limite temporal.
+- O identificador atua como desempate da ordenação para produzir sequências determinísticas.
 - O relatório separa o resumo consolidado da lista paginada, mas ambos respeitam os mesmos filtros.
 
 ## Evidência de extensibilidade

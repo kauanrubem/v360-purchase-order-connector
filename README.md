@@ -46,7 +46,7 @@ GET  /api/v1/invoice-validations/{validationId}
 GET  /api/v1/reports/invoice-validations
 ```
 
-A listagem aceita `source`, `vendorTaxId`, `status`, `pendingOnly`, `snapshotAt`, `page` e `size` como parâmetros opcionais. A primeira página retorna um `snapshotAt`, que deve ser reutilizado nas páginas seguintes para manter a mesma visão dos dados.
+A listagem aceita `source`, `vendorTaxId`, `status`, `pendingOnly`, `snapshotId`, `page` e `size` como parâmetros opcionais. A primeira página materializa e retorna um `snapshotId`, que deve ser reutilizado com os mesmos filtros nas páginas seguintes. Durante 24 horas, o snapshot preserva a sequência e os dados resumidos dos pedidos mesmo que novas cargas criem pedidos ou alterem status, fornecedor e saldo de pedidos existentes.
 
 A importação do Beta usa `multipart/form-data` com as partes `headersFile` e `itemsFile`. Arquivos prontos para teste estão em `samples/beta`.
 
@@ -159,3 +159,23 @@ As justificativas completas estão em [docs/business-rules.md](docs/business-rul
 ## Evolução após a Parte 1
 
 Gama, Delta e as evoluções de consulta foram implementados após a tag `parte-1`. O impacto arquitetural, incluindo o que foi apenas adicionado e o que precisou ser modificado, está em [docs/part-2-impact.md](docs/part-2-impact.md).
+
+### O que mudou para o Gama
+
+- Foram adicionados contrato, agrupador e mapper próprios para o JSON achatado.
+- Timestamp Unix, situação numérica, centavos, caixas e fatores de conversão são normalizados antes de entrar no domínio.
+- O item passou a guardar unidade de compra, fator e preço originais para auditoria.
+- A migration V3 adicionou esses campos opcionais sem invalidar dados Alfa e Beta.
+
+### O que mudou para o Delta
+
+- Foram adicionados dois contratos JSON e um assembler que relaciona itens e cabeçalhos pelo número do pedido.
+- Itens órfãos são rejeitados explicitamente, enquanto pedidos válidos continuam sendo importados; pedidos sem itens são aceitos.
+- O domínio passou a aceitar pedidos sem linhas e a preservar a data própria do item.
+- A migration V4 adicionou a data da linha, habilitou `DELTA` e criou índices de consulta.
+
+### O que mudou para paginação e relatório
+
+- As migrations V5 e V6 adicionaram o instante estável e índices do relatório.
+- A migration V7 criou snapshots materializados da listagem de pedidos. Isso garante que uma varredura não tenha duplicações nem omissões causadas por importações ou reimportações concorrentes.
+- Consulta, conferência e relatório continuam usando o mesmo modelo normalizado, sem regras condicionais específicas de Gama ou Delta.

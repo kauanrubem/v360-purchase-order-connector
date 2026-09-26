@@ -14,6 +14,6 @@ public class OpenApiConfiguration {
                 .info(new Info()
                         .title("V360 Purchase Order Connector API")
                         .description("API para importação, consulta, conferência e relatório de pedidos de compra normalizados dos clientes Alfa, Beta, Gama e Delta.")
-                        .version("2.0.0"));
+                        .version("2.1.0"));
     }
 }
