@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Este modelo é o contrato interno da aplicação. Os formatos de Alfa, Beta e Gama são convertidos para ele na fronteira de importação. Casos de uso de consulta, conferência e relatório não devem depender de campos ou vocabulários particulares dos clientes.
+Este modelo é o contrato interno da aplicação. Os formatos de Alfa, Beta, Gama e Delta são convertidos para ele na fronteira de importação. Casos de uso de consulta, conferência e relatório não devem depender de campos ou vocabulários particulares dos clientes.
 
 ## Agregados
 
@@ -10,7 +10,7 @@ Este modelo é o contrato interno da aplicação. Os formatos de Alfa, Beta e Ga
 
 Raiz do agregado de pedido de compra.
 
-| Campo | Tipo Java planejado | Obrigatório | Regra |
+| Campo | Tipo Java | Obrigatório | Regra |
 |---|---|---:|---|
 | `id` | `UUID` | sim | Identificador interno gerado pela aplicação. |
 | `source` | `ClientSource` | sim | Cliente de origem. |
@@ -19,21 +19,21 @@ Raiz do agregado de pedido de compra.
 | `status` | `PurchaseOrderStatus` | sim | `OPEN`, `CLOSED` ou `BLOCKED`. |
 | `currency` | `Currency` | sim | Código ISO 4217, inicialmente `BRL`. |
 | `vendor` | `Vendor` | sim | Fornecedor do pedido. |
-| `items` | `List<PurchaseOrderItem>` | sim | Lista não vazia. |
+| `items` | `List<PurchaseOrderItem>` | sim | Pode ser vazia no Delta, cujas fontes de pedido e item são independentes. |
 | `importedAt` | `Instant` | sim | Momento da última importação aceita. |
 
 Restrição de unicidade: `source + number`.
 
 ### Vendor
 
-| Campo | Tipo Java planejado | Obrigatório | Regra |
+| Campo | Tipo Java | Obrigatório | Regra |
 |---|---|---:|---|
 | `taxId` | `String` | sim | CNPJ normalizado com 14 dígitos. |
 | `name` | `String` | sim | Razão social não vazia. |
 
 ### PurchaseOrderItem
 
-| Campo | Tipo Java planejado | Obrigatório | Regra |
+| Campo | Tipo Java | Obrigatório | Regra |
 |---|---|---:|---|
 | `line` | `String` | sim | Linha preservada como texto para não assumir numeração inteira. |
 | `materialCode` | `String` | sim | Código não vazio. |
@@ -54,13 +54,14 @@ A linha é única dentro do pedido. O código do material não precisa ser únic
 
 ### SourceItemDetails
 
-Metadados opcionais da representação de origem. Inicialmente serão úteis para o Gama.
+Metadados opcionais da representação de origem, úteis para auditar conversões do Gama e datas próprias dos itens Delta.
 
-| Campo | Tipo Java planejado | Obrigatório |
+| Campo | Tipo Java | Obrigatório |
 |---|---|---:|
 | `purchaseUnit` | `String` | não |
 | `conversionFactor` | `BigDecimal` | não |
 | `purchaseUnitPrice` | `BigDecimal` | não |
+| `createdAt` | `LocalDate` | não |
 
 Os campos não participam da conferência; servem para rastreabilidade.
 
@@ -68,7 +69,7 @@ Os campos não participam da conferência; servem para rastreabilidade.
 
 Registro imutável de uma tentativa executável de conferência.
 
-| Campo | Tipo Java planejado | Obrigatório |
+| Campo | Tipo Java | Obrigatório |
 |---|---|---:|
 | `id` | `UUID` | sim |
 | `purchaseOrderId` | `UUID` | não, quando não encontrado |
@@ -82,7 +83,7 @@ Registro imutável de uma tentativa executável de conferência.
 
 ### InvoiceItemSnapshot
 
-| Campo | Tipo Java planejado | Obrigatório |
+| Campo | Tipo Java | Obrigatório |
 |---|---|---:|
 | `purchaseOrderLine` | `String` | não |
 | `materialCode` | `String` | sim |
@@ -91,7 +92,7 @@ Registro imutável de uma tentativa executável de conferência.
 
 ### Divergence
 
-| Campo | Tipo Java planejado | Obrigatório |
+| Campo | Tipo Java | Obrigatório |
 |---|---|---:|
 | `type` | `DivergenceType` | sim |
 | `message` | `String` | sim |
@@ -106,7 +107,7 @@ Os valores esperado e recebido são textos porque uma divergência pode comparar
 ## Enumerações
 
 ```text
-ClientSource: ALFA, BETA, GAMA
+ClientSource: ALFA, BETA, GAMA, DELTA
 PurchaseOrderStatus: OPEN, CLOSED, BLOCKED
 ValidationStatus: APPROVED, REJECTED
 ```
@@ -130,4 +131,3 @@ GET /api/v1/purchase-orders/ALFA/4500001234
 - A conferência é feita contra um único pedido.
 - Tributos, descontos, frete e tolerâncias contratuais específicas não fazem parte do escopo inicial.
 - O modelo externo dos clientes nunca será usado diretamente como resposta da API normalizada.
-

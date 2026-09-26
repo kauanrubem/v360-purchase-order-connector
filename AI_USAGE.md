@@ -8,6 +8,7 @@ Utilizei o Codex, da OpenAI, como apoio durante o desenvolvimento. A ferramenta 
 - discutir ambiguidades, como baixa de saldo, tolerância monetária e materiais repetidos;
 - propor o contrato inicial da API e a organização dos pacotes;
 - gerar rascunhos de código, migrations, testes e documentação;
+- revisar a extensibilidade ao incorporar as duas fontes Delta e a paginação estável;
 - executar os testes, interpretar falhas e revisar a consistência entre implementação e documentação.
 
 O código sugerido não foi aceito automaticamente. As decisões foram confrontadas com o enunciado, compilação, testes automatizados e comportamento esperado da API.
@@ -37,7 +38,7 @@ Esses episódios reforçaram que uma resposta plausível da IA não substitui co
 - executei `git diff --check` para detectar problemas de formatação;
 - registrei decisões e limitações antes de expandir o escopo.
 
-Na Parte 2, os testes também validaram numericamente a conversão do Gama: 10 caixas de 12 unidades foram normalizadas para 120 unidades, com 24 recebidas e preço de R$ 100,00 por unidade.
+Na Parte 2, os testes também validaram numericamente a conversão do Gama: 10 caixas de 12 unidades foram normalizadas para 120 unidades, com 24 recebidas e preço de R$ 100,00 por unidade. Para o Delta, validaram a correlação entre as duas fontes, item órfão, pedido sem itens, reimportação e reutilização das regras de conferência. A paginação foi testada para garantir estabilidade com o mesmo `snapshotAt`.
 
 ## Como garanto que entendo o código
 

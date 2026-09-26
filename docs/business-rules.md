@@ -41,17 +41,18 @@ O número isolado não será considerado globalmente único, pois clientes difer
 - Alfa: leitura direta do formato ISO.
 - Beta: conversão de `dd/MM/yyyy` para o formato normalizado.
 - Gama: conversão do timestamp Unix em segundos usando UTC antes da extração da data.
+- Delta: datas ISO do pedido e dos itens são preservadas separadamente.
 - Datas inválidas provocarão rejeição da carga; não serão corrigidas silenciosamente.
 
 ### 3.4 Situação do pedido
 
 O vocabulário interno terá três valores:
 
-| Situação normalizada | Alfa | Beta | Gama |
-|---|---|---|---|
-| `OPEN` | `open` | `EM ABERTO` | `1` |
-| `CLOSED` | `closed` | `ENCERRADO` | `2` |
-| `BLOCKED` | `blocked` | `BLOQUEADO` | `3` |
+| Situação normalizada | Alfa | Beta | Gama | Delta |
+|---|---|---|---|---|
+| `OPEN` | `open` | `EM ABERTO` | `1` | `open` |
+| `CLOSED` | `closed` | `ENCERRADO` | `2` | `closed` |
+| `BLOCKED` | `blocked` | `BLOQUEADO` | `3` | `blocked` |
 
 Valores não reconhecidos serão tratados como erro de importação. Não haverá situação padrão implícita.
 
@@ -98,7 +99,7 @@ Exemplo: dez caixas com doze unidades e preço de R$ 1.200,00 por caixa resultam
 
 Uma carga inválida não poderá produzir um pedido parcialmente persistido. Todos os itens de um pedido devem ser validados antes de sua gravação.
 
-Pedidos válidos e inválidos de uma mesma carga poderão ser tratados independentemente, desde que o resultado da importação informe claramente quais pedidos foram aceitos e quais foram rejeitados. Essa granularidade será confirmada no desenho do contrato da API.
+Erros estruturais, valores inválidos e violações do domínio rejeitam a transação. A exceção explícita é a conciliação Delta: itens órfãos são rejeitados individualmente com `ORPHAN_ITEM`, e os pedidos válidos da mesma carga são importados.
 
 ### 4.2 Reenvio e atualização
 
@@ -134,6 +135,15 @@ A origem é a autoridade sobre as quantidades já recebidas. A aplicação não 
 - Divergências de fornecedor, data ou situação entre linhas do mesmo pedido provocarão rejeição do pedido.
 - Timestamp, centavos, códigos de situação e fatores de conversão serão normalizados pelo adaptador do Gama.
 
+#### Delta
+
+- Pedidos e itens chegam em dois arquivos JSON separados, equivalentes a duas APIs de origem.
+- A correlação é feita por `purchase_order` do item com `po_number` do cabeçalho.
+- Um item sem pedido correspondente é rejeitado como `ORPHAN_ITEM` sem impedir os pedidos válidos.
+- Cabeçalhos duplicados e linhas duplicadas dentro do mesmo pedido tornam a carga inválida.
+- Um pedido sem itens é aceito e pode receber itens em uma reimportação posterior.
+- A data própria de cada item é preservada em `sourceDetails.createdAt`.
+
 ## 5. Consulta de pedidos
 
 A listagem deverá admitir, no mínimo, os seguintes filtros combináveis:
@@ -153,7 +163,7 @@ A consulta detalhada exibirá, para cada item:
 - preço unitário normalizado;
 - unidade normalizada.
 
-A listagem será paginada para evitar respostas sem limite quando houver grandes volumes.
+A listagem será paginada para evitar respostas sem limite quando houver grandes volumes. A primeira página devolve um `snapshotAt`; sua reutilização nas páginas seguintes impede que novas importações alterem a visão durante a navegação. A ordenação usa o primeiro instante de importação em ordem crescente e o identificador como desempate.
 
 ## 6. Conferência de nota fiscal
 
@@ -223,6 +233,10 @@ O relatório deverá informar:
 - total aprovado;
 - total rejeitado;
 - quantidade de ocorrências por tipo de divergência.
+- registros individuais da página, com origem, pedido, fornecedor, resultado, instante e quantidade de divergências;
+- metadados de paginação e `snapshotAt`.
+
+Os filtros disponíveis são origem, resultado, período e snapshot. O resumo consolidado respeita os mesmos filtros e o snapshot, mas não fica limitado aos elementos da página atual.
 
 Uma conferência com várias divergências conta uma única vez como rejeitada, mas contribui uma ocorrência para cada tipo de divergência encontrado.
 
@@ -242,14 +256,12 @@ O pedido contém moeda, mas o formato mínimo da nota descrito no desafio não c
 
 ### Pedidos inexistentes no relatório
 
-Uma tentativa contra pedido inexistente pode ser útil operacionalmente, mas não oferece cliente de origem confiável se ele não fizer parte da identificação da requisição. O contrato da API deverá exigir a origem junto ao número, permitindo registrar também esse resultado sem ambiguidade.
+A origem faz parte da URL da conferência. Assim, tentativas contra pedidos inexistentes podem ser registradas sem ambiguidade com `source + purchaseOrderNumber`.
 
-## 9. Pontos para validação durante a implementação
+## 9. Evoluções possíveis
 
-Estas decisões estão registradas antes do código e deverão ser revisitadas se os testes ou o desenho do contrato revelarem inconsistências:
-
-- granularidade transacional de cargas com vários pedidos;
-- representação da unidade normalizada para itens originalmente medidos em `KG`;
-- política de arredondamento quando a divisão pelo fator de conversão produzir dízima;
-- filtros adicionais do relatório, como período e cliente;
-- dados completos que devem ser preservados para auditoria sem duplicação excessiva.
+- processamento assíncrono e em lotes para volumes muito altos;
+- tolerâncias de conferência configuráveis por cliente ou moeda;
+- identificador de nota para idempotência das conferências;
+- política configurável para retenção dos dados de auditoria;
+- paginação por cursor caso o volume torne páginas numeradas insuficientes.

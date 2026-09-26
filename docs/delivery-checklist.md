@@ -3,7 +3,7 @@
 ## Repositório
 
 - [x] API Spring Boot com Java 21
-- [x] integrações Alfa, Beta e Gama
+- [x] integrações Alfa, Beta, Gama e Delta
 - [x] tag `parte-1`
 - [x] histórico com Parte 2 em commit separado
 - [x] migrations Flyway
@@ -20,7 +20,7 @@
 
 ## Demonstração
 
-- [ ] gravar vídeo de 6 a 8 minutos
+- [ ] gravar vídeo de 8 a 10 minutos
 - [ ] enviar vídeo ao Drive
 - [ ] liberar acesso pelo link
 - [ ] testar o link em janela anônima
@@ -34,4 +34,3 @@
 - [ ] conferir que a tag `parte-1` foi enviada
 - [ ] revisar se há segredos ou arquivos pessoais
 - [ ] enviar o e-mail com links do repositório e vídeo
-

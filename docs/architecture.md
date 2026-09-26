@@ -9,9 +9,11 @@ flowchart LR
     A[Alfa JSON] --> IA[Adaptador Alfa]
     B[Beta CSV] --> IB[Adaptador Beta]
     C[Gama JSON achatado] --> IG[Adaptador Gama]
+    E[Delta: pedidos + itens JSON] --> ID[Adaptador Delta]
     IA --> D[Modelo normalizado]
     IB --> D
     IG --> D
+    ID --> D
     D --> DB[(PostgreSQL)]
     DB --> Q[Consulta de pedidos]
     DB --> V[Conferência de notas]
@@ -28,6 +30,7 @@ domain/repository/ contratos de acesso aos agregados
 integration/alfa/ contrato externo e transformação do Alfa
 integration/beta/ leitura, associação e transformação dos CSVs Beta
 integration/gama/ agrupamento e transformação das linhas Gama
+integration/delta/ correlação entre pedidos e itens de fontes separadas
 infrastructure/    HTTP, configuração e persistência Spring
 ```
 
@@ -42,7 +45,11 @@ Os modelos recebidos dos clientes não são retornados pela API e não são util
 5. Um pedido inexistente é criado; um pedido existente é substituído pela versão mais recente.
 6. O PostgreSQL protege unicidade, integridade referencial e limites básicos.
 
-A importação é transacional. Uma inconsistência rejeita a carga inteira nesta versão. Processamento parcial por pedido seria uma evolução útil para cargas muito grandes.
+A importação é transacional para erros estruturais ou de domínio. No Delta, item sem cabeçalho correspondente é uma rejeição controlada (`ORPHAN_ITEM`): pedidos válidos continuam sendo gravados e o resumo informa importados e rejeitados.
+
+## Consultas e paginação
+
+Pedidos são ordenados pelo primeiro instante de importação em ordem crescente; conferências, pelo instante de validação em ordem decrescente. Ambos usam o identificador como desempate. Na primeira página, a API fixa e devolve `snapshotAt`; páginas seguintes podem reutilizar esse valor. Assim, registros inseridos durante a navegação não deslocam o conteúdo da visão já iniciada.
 
 ## Fluxo de conferência
 
@@ -70,7 +77,7 @@ Flyway controla o schema e Hibernate usa `ddl-auto=validate`. Assim, a aplicaç�
 
 Um novo cliente deve adicionar seu contrato de entrada, parser quando necessário, mapper e endpoint de ingestão. Consulta, conferência, relatório e tabelas normalizadas não devem precisar conhecer o novo formato.
 
-O Cliente Gama foi incluído depois da tag `parte-1`, permitindo comparar objetivamente o impacto da mudança. Consulte `docs/part-2-impact.md`.
+Gama e Delta foram incluídos depois da tag `parte-1`, permitindo comparar objetivamente o impacto da mudança. Consulte `docs/part-2-impact.md`.
 
 ## Trade-offs da Parte 1
 

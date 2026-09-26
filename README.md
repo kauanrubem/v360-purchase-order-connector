@@ -5,19 +5,21 @@ Serviço backend responsável por receber pedidos de compra em formatos específ
 O projeto será desenvolvido em duas partes:
 
 - **Parte 1:** integrações com Alfa Energia e Beta Alimentos;
-- **Parte 2:** inclusão da Gama Logística após a marcação da entrega da Parte 1.
+- **Parte 2:** inclusão da Gama Logística e da Delta, além de evolução da paginação e do relatório, após a marcação da Parte 1.
 
 ## Funcionalidades
 
 - importação JSON do Cliente Alfa;
 - importação dos dois CSVs do Cliente Beta;
 - importação JSON achatada do Cliente Gama, com conversão de caixas para unidades;
+- importação Delta por dois arquivos JSON independentes, correlacionando pedidos e itens;
 - reimportação idempotente por cliente e número do pedido;
 - consulta paginada com filtros combináveis;
 - detalhe com quantidade pedida, recebida e saldo;
 - conferência de notas com retorno estruturado de todas as divergências;
 - histórico imutável das conferências;
-- relatório com aprovações, rejeições e motivos.
+- paginação estável por snapshot, evitando mudança de visão entre páginas;
+- relatório paginado com filtros, aprovações, rejeições e motivos.
 
 Documentação produzida até aqui:
 
@@ -36,6 +38,7 @@ Documentação produzida até aqui:
 POST /api/v1/imports/alfa
 POST /api/v1/imports/beta
 POST /api/v1/imports/gama
+POST /api/v1/imports/delta
 GET  /api/v1/purchase-orders
 GET  /api/v1/purchase-orders/{source}/{purchaseOrderNumber}
 POST /api/v1/purchase-orders/{source}/{purchaseOrderNumber}/invoice-validations
@@ -43,11 +46,13 @@ GET  /api/v1/invoice-validations/{validationId}
 GET  /api/v1/reports/invoice-validations
 ```
 
-A listagem aceita `source`, `vendorTaxId`, `status`, `pendingOnly`, `page` e `size` como parâmetros opcionais.
+A listagem aceita `source`, `vendorTaxId`, `status`, `pendingOnly`, `snapshotAt`, `page` e `size` como parâmetros opcionais. A primeira página retorna um `snapshotAt`, que deve ser reutilizado nas páginas seguintes para manter a mesma visão dos dados.
 
 A importação do Beta usa `multipart/form-data` com as partes `headersFile` e `itemsFile`. Arquivos prontos para teste estão em `samples/beta`.
 
-O relatório aceita os filtros opcionais `source`, `from` e `to`. Os dois últimos usam timestamps ISO 8601 em UTC, por exemplo `2026-08-01T00:00:00Z`.
+A importação do Delta usa `multipart/form-data` com `ordersFile` e `itemsFile`. Itens sem pedido correspondente são informados como `ORPHAN_ITEM`, enquanto os pedidos válidos são importados. Pedidos sem itens são aceitos porque as fontes Delta são independentes.
+
+O relatório aceita `source`, `status`, `from`, `to`, `snapshotAt`, `page` e `size`. Datas usam ISO 8601 em UTC, por exemplo `2026-08-01T00:00:00Z`.
 
 ## Tecnologias
 
@@ -128,7 +133,7 @@ Os testes usam H2 em modo de compatibilidade PostgreSQL, executam as migrations 
 
 Como alternativa ao Postman, use [requests/v360.http](requests/v360.http) em uma IDE compatível com arquivos HTTP.
 
-As cargas originais estão em `samples/alfa`, `samples/beta` e `samples/gama`.
+As cargas originais estão em `samples/alfa`, `samples/beta`, `samples/gama` e `samples/delta`.
 
 ## Decisões importantes
 
@@ -138,7 +143,7 @@ As cargas originais estão em `samples/alfa`, `samples/beta` e `samples/gama`.
 - A conferência agrega linhas repetidas antes de validar o saldo.
 - A tolerância do total é de R$ 0,01 após arredondamento `HALF_UP`.
 - A conferência não altera a quantidade recebida; a origem continua sendo a autoridade do saldo.
-- Uma importação inválida é atômica: nenhum pedido daquela carga é persistido.
+- Erros estruturais tornam a importação atômica; no Delta, itens órfãos são rejeitados individualmente e os pedidos válidos são preservados.
 
 As justificativas completas estão em [docs/business-rules.md](docs/business-rules.md).
 
@@ -151,6 +156,6 @@ As justificativas completas estão em [docs/business-rules.md](docs/business-rul
 - métricas de duração e falha por integração;
 - política de tolerância configurável por cliente e moeda.
 
-## Parte 2
+## Evolução após a Parte 1
 
-O Cliente Gama foi implementado após a tag `parte-1`. O impacto arquitetural, incluindo o que foi apenas adicionado e o que precisou ser modificado, está em [docs/part-2-impact.md](docs/part-2-impact.md).
+Gama, Delta e as evoluções de consulta foram implementados após a tag `parte-1`. O impacto arquitetural, incluindo o que foi apenas adicionado e o que precisou ser modificado, está em [docs/part-2-impact.md](docs/part-2-impact.md).

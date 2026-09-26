@@ -1,4 +1,4 @@
-# Impacto da Parte 2 — Cliente Gama
+# Impacto após a Parte 1 — Gama, Delta e consultas
 
 ## O que foi apenas adicionado
 
@@ -8,8 +8,14 @@
 - endpoint `POST /api/v1/imports/gama`;
 - arquivo de amostra e testes específicos;
 - migration V3 para metadados de auditoria da conversão.
+- contratos JSON independentes de pedidos e itens do Delta;
+- assembler para correlacionar as duas fontes pelo número do pedido;
+- endpoint `POST /api/v1/imports/delta` e rejeição explícita de itens órfãos;
+- arquivos de amostra e testes de importação, reenvio, consulta e conferência Delta;
+- paginação estável por `snapshotAt` para pedidos e relatório;
+- listagem detalhada e filtro por resultado no relatório de conferências.
 
-Os casos de uso de consulta, conferência e relatório não receberam condições específicas para o Gama. Depois da normalização, eles trabalham com os mesmos objetos usados por Alfa e Beta.
+Os casos de uso de consulta, conferência e relatório não receberam condições específicas para Gama ou Delta. Depois da normalização, eles trabalham com os mesmos objetos usados por Alfa e Beta.
 
 ## O que precisou ser modificado
 
@@ -19,7 +25,9 @@ Os casos de uso de consulta, conferência e relatório não receberam condiçõe
 - fator de conversão;
 - preço original na unidade de compra.
 
-Esses campos não participam das regras centrais. Eles preservam a transformação para auditoria e aparecem como `sourceDetails` no detalhe do pedido. Uma migration aditiva e retrocompatível criou as colunas como opcionais, portanto pedidos Alfa e Beta continuam válidos.
+Depois, ganhou também a data opcional do item, necessária porque o Delta informa datas independentes no cabeçalho e nas linhas. Pedidos passaram a aceitar uma lista vazia de itens para representar corretamente um cabeçalho Delta que ainda não possui linhas na segunda fonte.
+
+Esses campos não participam das regras centrais. Eles preservam a transformação para auditoria e aparecem como `sourceDetails` no detalhe do pedido. As migrations V3 e V4 criaram colunas e índices de forma aditiva, portanto pedidos Alfa e Beta continuam válidos. As migrations V5 e V6 adicionaram suporte e índices para as consultas por snapshot.
 
 ## Decisões específicas
 
@@ -30,9 +38,22 @@ Esses campos não participam das regras centrais. Eles preservam a transformaç�
 - Divisões não exatas usam escala de seis casas e `HALF_UP`; a conferência continua arredondando o total final para duas casas.
 - Os dados repetidos de cabeçalho precisam ser idênticos entre as linhas do mesmo pedido.
 
+### Delta
+
+- A integração recebe `ordersFile` e `itemsFile` na mesma requisição para representar as duas APIs sem depender de serviços externos durante a avaliação.
+- A associação usa o número do pedido; itens órfãos são reportados e não descartados silenciosamente.
+- Pedidos sem itens permanecem consultáveis, pois a ausência pode refletir defasagem entre as fontes.
+- Cabeçalhos ou linhas duplicados são erros de consistência e causam rollback.
+
+### Paginação e relatório
+
+- `snapshotAt` fixa o limite temporal da primeira página e é reaproveitável nas seguintes.
+- O identificador atua como desempate da ordenação para produzir páginas determinísticas.
+- O relatório separa o resumo consolidado da lista paginada, mas ambos respeitam os mesmos filtros.
+
 ## Evidência de extensibilidade
 
-O Gama entrou principalmente como um novo adaptador. Não foi necessário modificar:
+Gama e Delta entraram principalmente como novos adaptadores. Não foi necessário criar variações por cliente para:
 
 - busca e filtros de pedidos;
 - identificação `source + number`;
@@ -41,5 +62,4 @@ O Gama entrou principalmente como um novo adaptador. Não foi necessário modifi
 - persistência de conferências;
 - cálculo do relatório.
 
-Se um quarto cliente enviasse XML, seria criado um novo parser e mapper para o mesmo modelo normalizado. Mudanças no domínio somente seriam necessárias se o novo cliente trouxesse um conceito de negócio ainda não representado, e não apenas outro formato de transporte.
-
+Se outro cliente enviasse XML, seria criado um novo parser e mapper para o mesmo modelo normalizado. Mudanças no domínio somente seriam necessárias se ele trouxesse um conceito de negócio ainda não representado, e não apenas outro formato de transporte.
