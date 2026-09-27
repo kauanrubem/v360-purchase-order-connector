@@ -129,7 +129,17 @@ Os testes usam H2 em modo de compatibilidade PostgreSQL, executam as migrations 
 
 1. Suba a aplicação.
 2. Importe [postman/V360.postman_collection.json](postman/V360.postman_collection.json).
-3. Execute as pastas da coleção na ordem numérica.
+3. No Postman Desktop, abra `Settings > General > Working Directory` e selecione a pasta `postman` deste repositório.
+4. Confirme que o Postman possui permissão para ler arquivos desse diretório.
+5. Execute as pastas da coleção na ordem numérica.
+
+Exemplo no Windows:
+
+```text
+C:\caminho\para\v360-purchase-order-connector\postman
+```
+
+A coleção referencia os arquivos como `../samples/...`. Por isso, o diretório de trabalho deve ser exatamente a pasta `postman`, e não a raiz do projeto nem a pasta padrão `C:\Users\<usuario>\Postman`. Um aviso amarelo no campo do arquivo ou um erro `ENOENT` indica que o Postman ainda está procurando os samples no diretório errado.
 
 Como alternativa ao Postman, use [requests/v360.http](requests/v360.http) em uma IDE compatível com arquivos HTTP.
 
