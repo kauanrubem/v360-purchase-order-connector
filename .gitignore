@@ -1,6 +1,8 @@
 target/
 .idea/
 .vscode/
+.postman/
+postman/globals/
 *.iml
 *.log
 .env
