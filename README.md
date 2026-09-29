@@ -29,7 +29,6 @@ Documentação produzida até aqui:
 - [Arquitetura](docs/architecture.md)
 - [Impacto da Parte 2](docs/part-2-impact.md)
 - [Uso de IA](AI_USAGE.md)
-- [Roteiro da demonstração](docs/demo-script.md)
 
 ## Endpoints disponíveis
 
