@@ -24,13 +24,12 @@ O projeto será desenvolvido em duas partes:
 Documentação produzida até aqui:
 
 - [Regras de negócio e premissas](docs/business-rules.md)
-- [Modelo normalizado](docs/domain-model.md)
+- [Desenho do banco de dados](docs/database-design.md)
 - [Contrato OpenAPI](docs/openapi.yaml)
 - [Arquitetura](docs/architecture.md)
 - [Impacto da Parte 2](docs/part-2-impact.md)
 - [Uso de IA](AI_USAGE.md)
 - [Roteiro da demonstração](docs/demo-script.md)
-- [Checklist de entrega](docs/delivery-checklist.md)
 
 ## Endpoints disponíveis
 
@@ -124,6 +123,18 @@ No Windows:
 ```
 
 Os testes usam H2 em modo de compatibilidade PostgreSQL, executam as migrations Flyway e validam os fluxos HTTP com MockMvc.
+
+## Logs
+
+A aplicação registra cada requisição com `requestId`, método, rota, status HTTP e duração. Erros de negócio aparecem em nível `WARN`; falhas inesperadas aparecem em `ERROR` com stack trace. Corpos de requisição, CNPJ e credenciais não são escritos nos logs.
+
+Os eventos são enviados ao console e ao arquivo `logs/v360-connector.log`. Com Docker, acompanhe pelo console:
+
+```bash
+docker compose logs -f api
+```
+
+Ou leia o arquivo persistido no diretório `logs` do projeto. O cabeçalho `X-Request-Id` da resposta permite localizar nos logs tudo que pertence a uma chamada específica. O nível pode ser alterado com `LOG_LEVEL`, por exemplo `LOG_LEVEL=DEBUG`.
 
 ## Como experimentar
 
