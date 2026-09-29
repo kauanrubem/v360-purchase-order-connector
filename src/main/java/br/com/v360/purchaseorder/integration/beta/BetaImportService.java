@@ -6,6 +6,8 @@ import br.com.v360.purchaseorder.domain.model.PurchaseOrder;
 import br.com.v360.purchaseorder.domain.repository.PurchaseOrderRepository;
 import br.com.v360.purchaseorder.infrastructure.web.dto.ImportResultResponse;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BetaImportService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BetaImportService.class);
 
     private final BetaCsvParser parser;
     private final BetaPurchaseOrderMapper mapper;
@@ -37,6 +41,7 @@ public class BetaImportService {
     public ImportResultResponse importOrders(MultipartFile headersFile, MultipartFile itemsFile) {
         List<BetaCsvParser.BetaHeaderRow> headers = parser.parseHeaders(headersFile);
         List<BetaCsvParser.BetaItemRow> items = parser.parseItems(itemsFile);
+        LOGGER.info("Starting purchase order import source=BETA orders={} items={}", headers.size(), items.size());
 
         Map<String, BetaCsvParser.BetaHeaderRow> headerByNumber = uniqueHeaders(headers);
         Map<String, List<BetaCsvParser.BetaItemRow>> itemsByOrder = items.stream()
@@ -45,6 +50,7 @@ public class BetaImportService {
         Set<String> orphanOrderNumbers = new HashSet<>(itemsByOrder.keySet());
         orphanOrderNumbers.removeAll(headerByNumber.keySet());
         if (!orphanOrderNumbers.isEmpty()) {
+            LOGGER.warn("Purchase order import rejected source=BETA orphanOrderCount={}", orphanOrderNumbers.size());
             throw new InvalidPurchaseOrderException(
                     "Existem itens sem cabeçalho correspondente no CSV Beta: " + orphanOrderNumbers
             );
@@ -62,6 +68,7 @@ public class BetaImportService {
             repository.save(purchaseOrder);
         }
 
+        LOGGER.info("Purchase order import completed source=BETA imported={}", headers.size());
         return ImportResultResponse.success(headers.size());
     }
 

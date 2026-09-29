@@ -15,6 +15,8 @@ import br.com.v360.purchaseorder.domain.repository.PurchaseOrderRepository;
 import br.com.v360.purchaseorder.infrastructure.web.dto.InvoiceValidationRequest;
 import br.com.v360.purchaseorder.infrastructure.web.dto.InvoiceValidationResponse;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -29,6 +31,8 @@ import java.util.UUID;
 
 @Service
 public class InvoiceValidationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InvoiceValidationService.class);
 
     private static final BigDecimal PRICE_TOLERANCE = new BigDecimal("0.01");
 
@@ -80,7 +84,12 @@ public class InvoiceValidationService {
                 divergences,
                 clock.instant()
         );
-        return InvoiceValidationResponse.from(validationRepository.save(validation));
+        InvoiceValidation saved = validationRepository.save(validation);
+        LOGGER.info(
+                "Invoice validation completed validationId={} source={} purchaseOrder={} status={} divergences={}",
+                saved.getId(), source, purchaseOrderNumber, saved.getStatus(), divergences.size()
+        );
+        return InvoiceValidationResponse.from(saved);
     }
 
     @Transactional(readOnly = true)

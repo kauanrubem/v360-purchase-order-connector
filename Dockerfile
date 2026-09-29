@@ -10,7 +10,9 @@ RUN mvn -B verify
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-RUN useradd --system --uid 1001 spring
+RUN useradd --system --uid 1001 spring \
+    && mkdir -p /app/logs \
+    && chown -R spring:spring /app
 COPY --from=build --chown=spring:spring /workspace/target/purchase-order-connector-*.jar app.jar
 
 USER spring

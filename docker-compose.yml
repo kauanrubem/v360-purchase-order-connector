@@ -22,11 +22,14 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/v360
       DB_USERNAME: v360
       DB_PASSWORD: v360
+      LOG_FILE: /app/logs/v360-connector.log
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
 
 volumes:
   postgres-data:
